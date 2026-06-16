@@ -1,0 +1,43 @@
+### Authentication
+POST http://127.0.0.1:8000/api/auth/login/
+Content-Type: application/json
+
+{
+  "username": "GLOIRE",
+  "password": "gloire"
+}
+
+### Create Evaluation (requires token from above)
+POST http://127.0.0.1:8000/api/pedagogie/evaluations/
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+{
+  "eleve": 1,
+  "matiere": 1,
+  "classe": 1,
+  "trimestre": 1,
+  "type_eval": "INT",
+  "coefficient": 1,
+  "note_sur_20": 14.5,
+  "date_eval": "2026-05-12"
+}
+
+### List Evaluations
+GET http://127.0.0.1:8000/api/pedagogie/evaluations/
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+### Retrieve Single Evaluation
+GET http://127.0.0.1:8000/api/pedagogie/evaluations/1/
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+### Update Evaluation
+PATCH http://127.0.0.1:8000/api/pedagogie/evaluations/1/
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+{
+  "note_sur_20": 16.75
+}
