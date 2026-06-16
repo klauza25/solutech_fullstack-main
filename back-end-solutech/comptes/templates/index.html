@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Horloge</title>
+
+    <style>
+        #heure{
+            font-size: 50px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+          <h1><center>klaus samba</center></h1>
+
+          <h2>connected USER : {{ user }}</h2>
+    <div id="heure"></div>
+
+    <div>{{ date|date:"l d F Y" }}</div>
+
+    <script>
+
+        function afficherHeure(){
+
+            let maintenant = new Date();
+
+            let h = String(maintenant.getHours()).padStart(2, '0');
+            let m = String(maintenant.getMinutes()).padStart(2, '0');
+            let s = String(maintenant.getSeconds()).padStart(2, '0');
+
+            document.getElementById("heure").innerText =
+                `${h}:${m}:${s}`;
+        }
+
+        // Lance immédiatement
+        afficherHeure();
+
+        // Met à jour chaque seconde
+        setInterval(afficherHeure, 1000);
+
+    </script>
+
+</body>
+</html>
