@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}Analytics - ICC Management{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto pb-12">
+    
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-white mb-2">Analytics Globales 📊</h1>
+        <p class="text-slate-400">Vue d'ensemble de la fréquentation</p>
+    </div>
+
+    <!-- KPIs -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+            <p class="text-slate-400 text-xs">Total Serviteurs</p>
+            <h2 class="text-3xl font-bold text-indigo-400 mt-1">{{ total_serviteurs }}</h2>
+        </div>
+        <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+            <p class="text-slate-400 text-xs">Chefs</p>
+            <h2 class="text-3xl font-bold text-green-400 mt-1">{{ total_chefs }}</h2>
+        </div>
+        <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+            <p class="text-slate-400 text-xs">Départements</p>
+            <h2 class="text-3xl font-bold text-purple-400 mt-1">{{ labels_dept|length }}</h2>
+        </div>
+        <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+            <p class="text-slate-400 text-xs">Taux Global</p>
+            <h2 class="text-3xl font-bold text-yellow-400 mt-1">{{ taux_presence }}%</h2>
+        </div>
+    </div>
+
+    <!-- Graphiques -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+            <h3 class="text-lg font-semibold text-white mb-4">Répartition par Département</h3>
+            <div class="relative h-72"><canvas id="deptChart"></canvas></div>
+        </div>
+        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+            <h3 class="text-lg font-semibold text-white mb-4">Évolution (5 derniers cultes)</h3>
+            <div class="relative h-72"><canvas id="eventChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+            <h3 class="text-lg font-semibold text-white mb-4">Présence Journalière (30 jours)</h3>
+            <div class="relative h-72"><canvas id="jourChart"></canvas></div>
+        </div>
+        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+            <h3 class="text-lg font-semibold text-white mb-4">Cumul par Jour de Semaine</h3>
+            <div class="relative h-72"><canvas id="jourSemaineChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-8">
+        <h3 class="text-lg font-semibold text-white mb-4">Comparatif d'Assiduité par Département (%)</h3>
+        <div class="relative h-80"><canvas id="comparatifChart"></canvas></div>
+    </div>
+
+    <!-- Classements -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
+            <h2 class="text-lg font-semibold mb-4 text-indigo-400">🏆 Top 5 Départements</h2>
+            <div class="space-y-3">
+                {% for dept in top_depts %}
+                    <div class="flex justify-between items-center bg-slate-900 p-3 rounded-lg border border-slate-700">
+                        <span class="text-white font-medium text-sm">{{ dept.name }}</span>
+                        <span class="text-lg font-bold text-green-400">{{ dept.taux }}%</span>
+                    </div>
+                {% empty %}
+                    <p class="text-slate-500 text-sm">Aucune donnée.</p>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
+            <h2 class="text-lg font-semibold mb-4 text-indigo-400">🌟 Top 10 Serviteurs</h2>
+            <div class="space-y-2 max-h-80 overflow-y-auto">
+                {% for serv in top_serviteurs %}
+                    <div class="flex justify-between items-center bg-slate-900 p-3 rounded-lg border border-slate-700">
+                        <div>
+                            <p class="text-white font-medium text-sm">{{ serv.nom }}</p>
+                            <p class="text-xs text-slate-400">{{ serv.dept }}</p>
+                        </div>
+                        <span class="text-lg font-bold text-green-400">{{ serv.taux }}%</span>
+                    </div>
+                {% empty %}
+                    <p class="text-slate-500 text-sm">Aucune donnée.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- INJECTION SÉCURISÉE DES DONNÉES (JSON_SCRIPT) -->
+<!-- ========================================== -->
+{{ data_dept|json_script:"data-dept" }}
+{{ labels_dept|json_script:"labels-dept" }}
+{{ data_events|json_script:"data-events" }}
+{{ labels_events|json_script:"labels-events" }}
+{{ data_jour|json_script:"data-jour" }}
+{{ labels_jour|json_script:"labels-jour" }}
+{{ data_jour_semaine|json_script:"data-jour-semaine" }}
+{{ jours_semaine|json_script:"jours-semaine" }}
+{{ data_comparatif|json_script:"data-comparatif" }}
+{{ labels_comparatif|json_script:"labels-comparatif" }}
+
+<!-- ========================================== -->
+<!-- SCRIPT CHART.JS -->
+<!-- ========================================== -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof Chart === 'undefined') return;
+
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.borderColor = '#334155';
+
+        // Récupération sécurisée des données
+        const getJson = (id) => JSON.parse(document.getElementById(id).textContent);
+
+        const labelsDept = getJson('labels-dept');
+        const dataDept = getJson('data-dept');
+        const labelsEvents = getJson('labels-events');
+        const dataEvents = getJson('data-events');
+        const labelsJour = getJson('labels-jour');
+        const dataJour = getJson('data-jour');
+        const joursSemaine = getJson('jours-semaine');
+        const dataJourSemaine = getJson('data-jour-semaine');
+        const labelsComparatif = getJson('labels-comparatif');
+        const dataComparatif = getJson('data-comparatif');
+
+        const palette = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b', '#10b981', '#06b6d4', '#3b82f6'];
+
+        // 1. Doughnut
+        new Chart(document.getElementById('deptChart'), {
+            type: 'doughnut',
+            data: { labels: labelsDept, datasets: [{ data: dataDept, backgroundColor: palette, borderColor: '#1e293b', borderWidth: 2 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+        });
+
+        // 2. Line
+        new Chart(document.getElementById('eventChart'), {
+            type: 'line',
+            data: { labels: labelsEvents, datasets: [{ label: 'Présents', data: dataEvents, borderColor: '#6366f1', backgroundColor: 'rgba(99, 102, 241, 0.2)', tension: 0.4, fill: true }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+        });
+
+        // 3. Bar Journalier
+        new Chart(document.getElementById('jourChart'), {
+            type: 'bar',
+            data: { labels: labelsJour, datasets: [{ data: dataJour, backgroundColor: '#6366f1', borderRadius: 4 }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true }, x: { ticks: { maxTicksLimit: 8 } } } }
+        });
+
+        // 4. Bar Semaine
+        new Chart(document.getElementById('jourSemaineChart'), {
+            type: 'bar',
+            data: { labels: joursSemaine, datasets: [{ data: dataJourSemaine, backgroundColor: palette, borderRadius: 6 }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+        });
+
+        // 5. Comparatif Horizontal
+        new Chart(document.getElementById('comparatifChart'), {
+            type: 'bar',
+            data: { labels: labelsComparatif, datasets: [{ data: dataComparatif, backgroundColor: '#10b981', borderRadius: 6 }] },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true, max: 100 } } }
+        });
+    });
+</script>
+{% endblock %}

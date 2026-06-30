@@ -1,0 +1,382 @@
+{% extends 'base.html' %}
+
+{% block title %}Tableau de Bord - ICC Management{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    
+    <!-- ========================================== -->
+    <!-- EN-TÊTE ADAPTÉ AU RÔLE (Admin vs Chef) -->
+    <!-- ========================================== -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-white mb-6">
+            {% if request.user.role == 'admin' %}
+                Tableau de Bord Admin 👋
+            {% else %}
+                Tableau de Bord Chef 
+            {% endif %}
+        </h1>
+        
+        <!-- GESTION DU DÉPARTEMENT -->
+        {% if user_department %}
+            {% if request.user.role == 'admin' %}
+                <!-- BADGE POUR L'ADMIN (avec lien pour tout voir) -->
+                <div class="inline-flex items-center gap-2 bg-indigo-600/20 border border-indigo-600 text-indigo-300 px-4 py-2 rounded-lg mb-6">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    <span class="font-semibold">Filtre actif : {{ user_department.name }}</span>
+                    <a href="{% url 'chef_dashboard' %}" class="ml-3 text-xs text-slate-400 hover:text-white underline">Voir tout</a>
+                </div>
+
+                <!-- BARRE DE FILTRES (UNIQUEMENT POUR L'ADMIN) -->
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <a href="{% url 'chef_dashboard' %}" 
+                       class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
+                       {% if not current_dept %}bg-indigo-600 text-white shadow-lg scale-105{% else %}bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700{% endif %}">
+                        Tous les Départements
+                    </a>
+                    {% for dept in all_departments %}
+                        <a href="?dept_id={{ dept.id }}" 
+                           class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
+                           {% if current_dept and current_dept.id == dept.id %}bg-indigo-600 text-white shadow-lg scale-105{% else %}bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700{% endif %}">
+                            {{ dept.name }}
+                        </a>
+                    {% endfor %}
+                </div>
+
+            {% else %}
+                <!-- BADGE POUR LE CHEF (Simple et direct) -->
+                <div class="inline-flex items-center gap-2 bg-green-600/20 border border-green-600 text-green-300 px-4 py-2 rounded-lg mb-4">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                    <span class="font-semibold">Mon Département : {{ user_department.name }}</span>
+                </div>
+            {% endif %}
+
+            <!-- ========================================== -->
+            <!-- BOUTON AJOUTER UN SERVITEUR (NOUVEAU) -->
+            <!-- ========================================== -->
+            <div class="flex flex-wrap gap-3 mt-4">
+                <a href="{% url 'add_serviteur' %}" 
+                   class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition shadow-lg">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Ajouter un Serviteur
+                </a>
+            </div>
+
+        {% else %}
+            <!-- ALERTE SI AUCUN DÉPARTEMENT N'EST ASSIGNÉ -->
+            <div class="bg-yellow-900/30 border border-yellow-700 text-yellow-200 p-4 rounded-lg mb-6 flex items-center gap-3">
+                <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                <div>
+                    <p class="font-bold">Aucun département assigné !</p>
+                    <p class="text-sm">Contactez l'administrateur pour être rattaché à un département avant de pouvoir pointer.</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- ========================================== -->
+    <!-- STATS (Visible pour Chef ET Admin) -->
+    <!-- ========================================== -->
+    {% if request.user.role == 'chef' or request.user.role == 'admin' %}
+    
+    <!-- KPIs -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+            <p class="text-slate-400 text-xs">Total Membres</p>
+            <h2 class="text-3xl font-bold text-indigo-400 mt-1">{{ total_membres|default:"0" }}</h2>
+        </div>
+        <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+            <p class="text-slate-400 text-xs">Taux Global</p>
+            <h2 class="text-3xl font-bold text-green-400 mt-1">{{ taux_presence|default:"0" }}%</h2>
+        </div>
+        <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+            <p class="text-slate-400 text-xs">Alertes</p>
+            <h2 class="text-3xl font-bold text-red-400 mt-1">{{ alertes|length|default:"0" }}</h2>
+        </div>
+        <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+            <p class="text-slate-400 text-xs">Derniers Pointages</p>
+            <h2 class="text-3xl font-bold text-yellow-400 mt-1">{{ derniers_pointages|length|default:"0" }}</h2>
+        </div>
+    </div>
+
+    <!-- Top Membres & Alertes -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
+            <h2 class="text-xl font-semibold mb-4 text-indigo-400">🏆 Top Membres</h2>
+            <div class="space-y-2 max-h-96 overflow-y-auto">
+                {% for stat in membres_stats %}
+                    <div class="flex justify-between items-center bg-slate-900 p-3 rounded-lg border border-slate-700">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-white text-sm">
+                                {{ stat.membre.prenom|slice:":1" }}{{ stat.membre.nom|slice:":1" }}
+                            </div>
+                            <div>
+                                <p class="text-white font-medium text-sm">{{ stat.membre.prenom }} {{ stat.membre.nom }}</p>
+                                <p class="text-xs text-slate-400">{{ stat.membre.profession|default:"-" }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg font-bold {% if stat.taux >= 80 %}text-green-400{% elif stat.taux >= 50 %}text-yellow-400{% else %}text-red-400{% endif %}">
+                                {{ stat.taux }}%
+                            </span>
+                            <!-- BOUTON SUPPRIMER (NOUVEAU) -->
+                            <form method="post" action="{% url 'delete_serviteur' stat.membre.id %}" 
+                                  onsubmit="return confirm('Supprimer {{ stat.membre.prenom }} {{ stat.membre.nom }} ?');">
+                                {% csrf_token %}
+                                <button type="submit" class="text-red-400 hover:text-red-300 hover:bg-red-900/30 p-1.5 rounded-lg transition" title="Supprimer">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
+            <h2 class="text-xl font-semibold mb-4 text-red-400">⚠️ Alertes (< 50%)</h2>
+            <div class="space-y-2 max-h-96 overflow-y-auto">
+                {% for alerte in alertes %}
+                    <div class="flex justify-between items-center bg-red-900/20 p-3 rounded-lg border border-red-700">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center font-bold text-white text-sm">
+                                {{ alerte.membre.prenom|slice:":1" }}{{ alerte.membre.nom|slice:":1" }}
+                            </div>
+                            <div>
+                                <p class="text-white font-medium text-sm">{{ alerte.membre.prenom }} {{ alerte.membre.nom }}</p>
+                                <p class="text-xs text-slate-400">{{ alerte.membre.telephone }}</p>
+                            </div>
+                        </div>
+                        <span class="text-lg font-bold text-red-400">{{ alerte.taux }}%</span>
+                    </div>
+                {% empty %}
+                    <p class="text-slate-400 text-center py-8">Aucune alerte 🎉</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Derniers pointages -->
+    {% if derniers_pointages %}
+    <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700 mb-8">
+        <h2 class="text-xl font-semibold mb-4 text-indigo-400">📝 Derniers Pointages</h2>
+        <div class="space-y-2">
+            {% for pointage in derniers_pointages %}
+                <div class="flex justify-between items-center bg-slate-900 p-3 rounded-lg border border-slate-700">
+                    <div>
+                        <p class="text-white font-medium text-sm">{{ pointage.servant.prenom }} {{ pointage.servant.nom }}</p>
+                        <p class="text-xs text-slate-400">{{ pointage.event.name }}</p>
+                    </div>
+                    <div class="text-right">
+                        {% if pointage.status == 'present' %}
+                            <span class="text-green-400 text-sm">✅ Présent</span>
+                        {% elif pointage.status == 'absent' %}
+                            <span class="text-red-400 text-sm">❌ Absent</span>
+                        {% else %}
+                            <span class="text-yellow-400 text-sm">⚠️ Excusé</span>
+                        {% endif %}
+                        <p class="text-xs text-slate-500 mt-1">{{ pointage.timestamp|timesince }}</p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+        <!-- ========================================== -->
+    <!-- LISTE COMPLÈTE DES MEMBRES DU DÉPARTEMENT -->
+    <!-- ========================================== -->
+    {% if liste_membres_complete %}
+    <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700 mb-8">
+        <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+            <div>
+                <h2 class="text-xl font-semibold text-indigo-400">👥 Liste des Membres</h2>
+                <p class="text-sm text-slate-400 mt-1">{{ liste_membres_complete|length }} serviteur(s) dans ce département</p>
+            </div>
+            
+            <!-- Barre de recherche locale -->
+            <input type="text" id="searchMembres" onkeyup="filterMembres()" 
+                   placeholder="🔍 Rechercher un membre..." 
+                   class="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-full md:w-64">
+        </div>
+
+        <!-- Tableau des membres -->
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-slate-700 text-left">
+                        <th class="pb-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Membre</th>
+                        <th class="pb-3 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden md:table-cell">Téléphone</th>
+                        <th class="pb-3 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden lg:table-cell">Profession</th>
+                        <th class="pb-3 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden lg:table-cell">Email</th>
+                        <th class="pb-3 text-xs font-semibold text-slate-400 uppercase tracking-wider text-center">Statistiques</th>
+                        <th class="pb-3 text-xs font-semibold text-slate-400 uppercase tracking-wider text-center">Taux</th>
+                        <th class="pb-3 text-xs font-semibold text-slate-400 uppercase tracking-wider text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="membresTableBody">
+                    {% for item in liste_membres_complete %}
+                        <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors membre-row">
+                            <!-- Nom + Avatar -->
+                            <td class="py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-white text-sm flex-shrink-0">
+                                        {{ item.membre.prenom|slice:":1" }}{{ item.membre.nom|slice:":1" }}
+                                    </div>
+                                    <div>
+                                        <p class="text-white font-medium text-sm">{{ item.membre.prenom }} {{ item.membre.nom }}</p>
+                                        <p class="text-xs text-slate-500 md:hidden">{{ item.membre.telephone|default:"-" }}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <!-- Téléphone -->
+                            <td class="py-4 text-sm text-slate-300 hidden md:table-cell">
+                                {% if item.membre.telephone %}
+                                    <a href="tel:{{ item.membre.telephone }}" class="hover:text-indigo-400 transition-colors">
+                                        📞 {{ item.membre.telephone }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-slate-500">-</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Profession -->
+                            <td class="py-4 text-sm text-slate-300 hidden lg:table-cell">
+                                {{ item.membre.profession|default:"-" }}
+                            </td>
+                            
+                            <!-- Email -->
+                            <td class="py-4 text-sm text-slate-300 hidden lg:table-cell">
+                                {% if item.membre.email %}
+                                    <a href="mailto:{{ item.membre.email }}" class="hover:text-indigo-400 transition-colors truncate block max-w-[150px]">
+                                        {{ item.membre.email }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-slate-500">-</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Statistiques détaillées -->
+                            <td class="py-4 text-center">
+                                <div class="flex flex-col gap-1 text-xs">
+                                    <span class="text-green-400">✅ {{ item.presents }} présents</span>
+                                    <span class="text-red-400">❌ {{ item.absents }} absents</span>
+                                    {% if item.excuses > 0 %}
+                                        <span class="text-yellow-400">⚠️ {{ item.excuses }} excusés</span>
+                                    {% endif %}
+                                    <span class="text-slate-500">📊 {{ item.total }} au total</span>
+                                </div>
+                            </td>
+                            
+                            <!-- Taux avec badge coloré -->
+                            <td class="py-4 text-center">
+                                <span class="inline-block px-3 py-1 rounded-full text-sm font-bold
+                                    {% if item.taux >= 80 %}bg-green-900/30 text-green-400 border border-green-700
+                                    {% elif item.taux >= 50 %}bg-yellow-900/30 text-yellow-400 border border-yellow-700
+                                    {% else %}bg-red-900/30 text-red-400 border border-red-700{% endif %}">
+                                    {{ item.taux }}%
+                                </span>
+                            </td>
+                            
+                            <!-- Actions -->
+                            <td class="py-4 text-center">
+                                <div class="flex items-center justify-center gap-2">
+                                    <!-- Bouton Supprimer -->
+                                    <form method="post" action="{% url 'delete_serviteur' item.membre.id %}" 
+                                          onsubmit="return confirm('Supprimer {{ item.membre.prenom }} {{ item.membre.nom }} ?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="text-red-400 hover:text-red-300 hover:bg-red-900/30 p-2 rounded-lg transition" title="Supprimer">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                                                    <!-- Actions -->
+                            <td class="py-4 text-center">
+                                <div class="flex items-center justify-center gap-2">
+                                    
+                                    <!-- BOUTON POINTER (NOUVEAU) -->
+                                    {% if latest_event %}
+                                        <a href="{% url 'mark_attendance' latest_event.id %}?dept={{ user_department.id }}" 
+                                           class="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-900/30 p-2 rounded-lg transition" 
+                                           title="Pointer la présence pour {{ latest_event.name }}">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                                            </svg>
+                                        </a>
+                                    {% endif %}
+
+                                    <!-- BOUTON SUPPRIMER -->
+                                    <form method="post" action="{% url 'delete_serviteur' item.membre.id %}" 
+                                          onsubmit="return confirm('Supprimer {{ item.membre.prenom }} {{ item.membre.nom }} ?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="text-red-400 hover:text-red-300 hover:bg-red-900/30 p-2 rounded-lg transition" title="Supprimer">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                    {% endfor %}
+                    
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Message si aucun résultat de recherche -->
+        <p id="noResult" class="hidden text-center text-slate-400 py-8">Aucun membre ne correspond à votre recherche.</p>
+    </div>
+    {% endif %}
+
+    {% endif %}
+    <!-- FIN STATS -->
+
+
+    <!-- ========================================== -->
+    <!-- LISTE ÉVÉNEMENTS AVEC BOUTONS POINTER -->
+    <!-- ========================================== -->
+    {% if request.user.role == 'chef' or request.user.role == 'admin' %}
+    <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700 mb-8">
+        <h2 class="text-xl font-semibold mb-4 text-indigo-400">📅 Événements récents</h2>
+        
+        {% if events %}
+        <div class="space-y-3">
+            {% for event in events %}
+                <div class="flex flex-col md:flex-row md:justify-between md:items-center bg-slate-900 p-4 rounded-lg border border-slate-700 gap-3">
+                    <div>
+                        <h3 class="font-bold text-white">{{ event.name }}</h3>
+                        <p class="text-sm text-slate-400">{{ event.get_event_type_display }} - {{ event.date }}</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        {% for dept in departments %}
+                            <a href="{% url 'mark_attendance' event.id %}?dept={{ dept.id }}" 
+                               class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm transition">
+                                Pointer {{ dept.name }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        {% else %}
+            <p class="text-slate-400 text-center py-8">Aucun événement créé pour l'instant.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <p class="text-center text-xs text-slate-500 mt-8">Système développé par <span class="text-indigo-400">KlauzaDev</span></p>
+</div>
+{% endblock %}

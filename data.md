@@ -1,0 +1,32 @@
+# password : password123
+
+- -     without admin : gloire, azerty, japhet, gloire
+
+-  anna	Anna	Mfoutou	Serviteur	Jeunesse		
+-	azerty	ikka	itoua	Chef de Département	jeune		
+- 	barnabe	Barnabé	Obambi	Serviteur	Jeunesse		
+-	daniel	Daniel	Ongagna	Serviteur	Louange & Adoration		
+-	david_jeune	David	Itoua	Chef de Département	Jeunesse		
+-	deborah	Déborah	Iloki	Serviteur	Intercession		
+-	esther	Esther	Nkaya	Serviteur	Louange & Adoration		
+-	gloire	gloire	samba	Administrateur Général	jeune		
+-	grace_pri	Grâce	Banzouzi	Chef de Département	Intercession		
+-	jacques	Jacques	Ngouabi	Serviteur	Protocole & Accueil		
+-	japhet	samba	japhet	Administrateur Général	jeune		
+-	jean_proto	Jean	Moukoko	Chef de Département	Protocole & Accueil		
+-	josue	Josué	Lekoundzou	Serviteur	Louange & Adoration		
+-	lea	Léa	Koumba	Serviteur	Multimédia		
+-	lucas	Lucas	Bemba	Serviteur	Multimédia		
+-	lydie	Lydie	Ndinga	Serviteur	Jeunesse		
+-	marie_louange	Marie	Kabongo	Chef de Département	Louange & Adoration		
+-	matthieu	Matthieu	Loubaki	Serviteur	Multimédia		
+-	paul2	Paul	Nzassi	Serviteur	Intercession		
+-	paul_media	Paul	Ngoma	Chef de Département	Multimédia		
+- #	pierre	Pierre	Mavoungou	Serviteur	Protocole & Accueil		
+-	priscilla	Priscilla	Voua	Serviteur	Jeunesse		
+- #	ruth	Ruth	Mbongi	Serviteur	Louange & Adoration		
+-	samba	Samba	Japhet	Serviteur	Louange & Adoration		
+-	samuel	Samuel	Moussavou	Serviteur	Intercession		
+-	sarah	Sarah	Makaya	Serviteur	Protocole & Accueil		
+-	silas	Silas	Moussonda	Serviteur	Jeunesse		
+-	tim	Timothée	Bouity	Serviteur	Jeunesse		

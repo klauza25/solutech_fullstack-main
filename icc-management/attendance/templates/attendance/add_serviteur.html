@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Ajouter un Serviteur - ICC Management{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+
+    <a href="{% url 'chef_dashboard' %}" class="text-indigo-400 hover:text-indigo-300 text-sm mb-4 inline-block">← Retour au tableau de bord</a>
+    
+    <h1 class="text-3xl font-bold text-white mb-2">Ajouter un Serviteur</h1>
+    
+    {% if department %}
+        <p class="text-slate-400 mb-8">Département : <span class="text-indigo-400 font-semibold">{{ department.name }}</span></p>
+    {% endif %}
+
+    <!-- Mode Admin : Choix du département -->
+    {% if mode == 'choose_dept' %}
+        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
+            <h2 class="text-xl font-semibold text-white mb-4">Choisir le département</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {% for dept in departments %}
+                    <a href="{% url 'add_serviteur' %}?dept={{ dept.id }}" 
+                       class="bg-slate-900 hover:bg-indigo-600/20 hover:border-indigo-500 p-4 rounded-xl border border-slate-700 transition-all">
+                        <p class="text-white font-medium">{{ dept.name }}</p>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    {% else %}
+        <!-- Formulaire d'ajout -->
+        <form method="post" class="bg-slate-800 rounded-2xl p-6 border border-slate-700 space-y-5">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <!-- Nom d'utilisateur -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Nom d'utilisateur *</label>
+                    <input type="text" name="username" required
+                           value="{{ form_data.username|default:'' }}"
+                           class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                           placeholder="ex: jean_dupont">
+                </div>
+
+                <!-- Mot de passe -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Mot de passe * (min. 4 caractères)</label>
+                    <input type="password" name="password" required minlength="4"
+                           class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                           placeholder="••••••">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <!-- Prénom -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Prénom *</label>
+                    <input type="text" name="prenom" required
+                           value="{{ form_data.prenom|default:'' }}"
+                           class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                           placeholder="Prénom">
+                </div>
+
+                <!-- Nom -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Nom *</label>
+                    <input type="text" name="nom" required
+                           value="{{ form_data.nom|default:'' }}"
+                           class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                           placeholder="Nom de famille">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <!-- Téléphone -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Téléphone</label>
+                    <input type="tel" name="telephone"
+                           value="{{ form_data.telephone|default:'' }}"
+                           class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                           placeholder="06 00 00 00 00">
+                </div>
+
+                <!-- Email -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Email</label>
+                    <input type="email" name="email"
+                           value="{{ form_data.email|default:'' }}"
+                           class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                           placeholder="email@exemple.com">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <!-- Profession -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Profession</label>
+                    <input type="text" name="profession"
+                           value="{{ form_data.profession|default:'' }}"
+                           class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                           placeholder="ex: Ingénieur">
+                </div>
+
+                <!-- Adresse -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Adresse</label>
+                    <input type="text" name="adresse"
+                           value="{{ form_data.adresse|default:'' }}"
+                           class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                           placeholder="Adresse">
+                </div>
+            </div>
+
+            <!-- Département (lecture seule) -->
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1">Département</label>
+                <input type="text" value="{{ department.name }}" disabled
+                       class="w-full px-4 py-2.5 bg-slate-700 border border-slate-600 rounded-lg text-slate-300 cursor-not-allowed">
+            </div>
+
+            <!-- Boutons -->
+            <div class="flex gap-4 pt-4">
+                <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl transition shadow-lg">
+                    ✅ Ajouter le Serviteur
+                </button>
+                <a href="{% url 'chef_dashboard' %}" class="bg-slate-700 hover:bg-slate-600 text-white font-medium py-3 px-6 rounded-xl transition">
+                    Annuler
+                </a>
+            </div>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}Recherche - ICC Management{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    
+    <h1 class="text-3xl font-bold text-white mb-2">Résultats de recherche</h1>
+    <p class="text-slate-400 mb-8">Recherche pour : <span class="text-indigo-400">"{{ query }}"</span></p>
+
+    <!-- Utilisateurs -->
+    {% if results.users %}
+    <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700 mb-6">
+        <h2 class="text-xl font-semibold mb-4 text-indigo-400">👥 Utilisateurs ({{ results.users|length }})</h2>
+        <div class="space-y-2">
+            {% for user in results.users %}
+                <div class="flex justify-between items-center bg-slate-900 p-4 rounded-lg border border-slate-700 hover:border-indigo-500 transition-colors">
+                    <div>
+                        <!-- Correction: text-lg au lieu de text-2xl pour garder l'harmonie -->
+                        <p class="text-white font-medium text-lg">{{ user.prenom }} {{ user.nom }}</p>
+                        <p class="text-xs text-slate-400 mt-1">{{ user.get_role_display }} • {{ user.departement.name }}</p>
+                    </div>
+                    <span class="text-sm text-slate-500 font-mono bg-slate-800 px-3 py-1 rounded-md">{{ user.telephone }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Événements -->
+    {% if results.events %}
+    <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700 mb-6">
+        <h2 class="text-xl font-semibold mb-4 text-indigo-400">📅 Événements ({{ results.events|length }})</h2>
+        <div class="space-y-2">
+            {% for event in results.events %}
+                <div class="bg-slate-900 p-4 rounded-lg border border-slate-700 hover:border-indigo-500 transition-colors">
+                    <p class="text-white font-medium">{{ event.name }}</p>
+                    <p class="text-xs text-slate-400 mt-1">{{ event.get_event_type_display }} • {{ event.date }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Départements -->
+    {% if results.departments %}
+    <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700 mb-6">
+        <h2 class="text-xl font-semibold mb-4 text-indigo-400">🏢 Départements ({{ results.departments|length }})</h2>
+        <div class="flex flex-wrap gap-3">
+            {% for dept in results.departments %}
+                <span class="bg-indigo-600/20 text-indigo-300 border border-indigo-600/50 px-4 py-2 rounded-lg text-sm font-medium">
+                    {{ dept.name }}
+                </span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if not results.users and not results.events and not results.departments %}
+        <div class="bg-slate-800 rounded-2xl p-16 border border-slate-700 text-center">
+            <svg class="w-16 h-16 text-slate-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+            <p class="text-slate-400 text-lg">Aucun résultat trouvé pour "{{ query }}"</p>
+            <p class="text-slate-500 text-sm mt-2">Essayez avec un autre terme ou vérifiez l'orthographe</p>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+// Fonction de recherche locale dans le tableau des membres
+function filterMembres() {
+    const input = document.getElementById('searchMembres');
+    const filter = input.value.toLowerCase();
+    const rows = document.querySelectorAll('.membre-row');
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(filter)) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    // Afficher/masquer le message "Aucun résultat"
+    const noResult = document.getElementById('noResult');
+    if (visibleCount === 0) {
+        noResult.classList.remove('hidden');
+    } else {
+        noResult.classList.add('hidden');
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}Mon Espace - ICC Management{% endblock %}
+
+{% block content %}
+
+<!-- Protection stricte : seul un serviteur voit cette page -->
+{% if request.user.role == 'serviteur' %}
+
+<div class="max-w-6xl mx-auto">
+    
+    <h1 class="text-3xl font-bold text-white mb-2">Mon Espace Personnel</h1>
+    <p class="text-slate-400 mb-8">Bienvenue {{ request.user.prenom }} 👋</p>
+
+    <!-- Statistiques personnelles -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+            <p class="text-slate-400 text-xs">Total Événements</p>
+            <h2 class="text-3xl font-bold text-indigo-400 mt-1">{{ total_evenements|default:"0" }}</h2>
+        </div>
+        <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+            <p class="text-slate-400 text-xs">Présents</p>
+            <h2 class="text-3xl font-bold text-green-400 mt-1">{{ total_presents|default:"0" }}</h2>
+        </div>
+        <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+            <p class="text-slate-400 text-xs">Absents</p>
+            <h2 class="text-3xl font-bold text-red-400 mt-1">{{ total_absents|default:"0" }}</h2>
+        </div>
+        <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+            <p class="text-slate-400 text-xs">Taux Présence</p>
+            <h2 class="text-3xl font-bold text-yellow-400 mt-1">{{ taux_presence|default:"0" }}%</h2>
+        </div>
+        <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+            <p class="text-slate-400 text-xs">Classement</p>
+            <h2 class="text-3xl font-bold text-purple-400 mt-1">{{ position|default:"-" }}/{{ total_membres_dept|default:"0" }}</h2>
+        </div>
+    </div>
+
+    <!-- Graphique personnel -->
+    {% if graph_labels %}
+    <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700 mb-8">
+        <h2 class="text-xl font-semibold mb-4 text-indigo-400">📈 Ma Présence (10 derniers événements)</h2>
+        <canvas id="persoChart" height="80"></canvas>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Historique -->
+        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
+            <h2 class="text-xl font-semibold mb-4 text-indigo-400">📜 Mon Historique</h2>
+            <div class="space-y-2 max-h-96 overflow-y-auto">
+                {% for presence in mes_presences %}
+                    <div class="flex justify-between items-center bg-slate-900 p-3 rounded-lg border border-slate-700">
+                        <div>
+                            <p class="text-white font-medium text-sm">{{ presence.event.name }}</p>
+                            <p class="text-xs text-slate-400">{{ presence.event.date }}</p>
+                        </div>
+                        <div>
+                            {% if presence.status == 'present' %}
+                                <span class="text-green-400 text-sm">✅ Présent</span>
+                            {% elif presence.status == 'absent' %}
+                                <span class="text-red-400 text-sm">❌ Absent</span>
+                            {% else %}
+                                <span class="text-yellow-400 text-sm">⚠️ Excusé</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-slate-400 text-center py-8">Aucun historique</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Prochains événements -->
+        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700">
+            <h2 class="text-xl font-semibold mb-4 text-indigo-400"> Prochains Événements</h2>
+            <div class="space-y-2">
+                {% for event in prochains_events %}
+                    <div class="bg-slate-900 p-3 rounded-lg border border-slate-700">
+                        <p class="text-white font-medium text-sm">{{ event.name }}</p>
+                        <p class="text-xs text-slate-400">{{ event.get_event_type_display }} • {{ event.date }}</p>
+                    </div>
+                {% empty %}
+                    <p class="text-slate-400 text-center py-8">Aucun événement à venir</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- Message de sécurité si quelqu'un accède par erreur -->
+<div class="max-w-4xl mx-auto text-center py-20">
+    <svg class="w-20 h-20 text-red-500 mx-auto mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+    </svg>
+    <h2 class="text-2xl font-bold text-white mb-4">Accès non autorisé</h2>
+    <p class="text-slate-400 mb-6">Cette page est réservée aux serviteurs.</p>
+    <a href="{% url 'chef_dashboard' %}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition">
+        Aller au tableau de bord
+    </a>
+</div>
+{% endif %}
+
+{% block extra_js %}
+{% if graph_labels %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.borderColor = '#334155';
+
+    new Chart(document.getElementById('persoChart'), {
+        type: 'line',
+        data: {
+            labels: {{ graph_labels|safe }},
+            datasets: [{
+                label: 'Présent (1) / Absent (0)',
+                data: {{ graph_data|safe }},
+                borderColor: '#6366f1',
+                backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { 
+                    beginAtZero: true,
+                    max: 1,
+                    ticks: {
+                        callback: function(value) {
+                            return value === 1 ? 'Présent' : 'Absent';
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,256 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ICC Management - Portail des Serviteurs">
+    <title>{% block title %}ICC Management{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.1) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+        
+        /* Scrollbar personnalisée sombre */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+
+        /* Animations */
+        .sidebar-transition { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Effet Glassmorphism pour le header mobile */
+        .glass-header {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body class="text-slate-200 min-h-screen flex overflow-x-hidden">
+
+    <!-- ========================================== -->
+    <!-- OVERLAY MOBILE -->
+    <!-- ========================================== -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden md:hidden transition-opacity" onclick="toggleSidebar()"></div>
+
+    <!-- ========================================== -->
+    <!-- SIDEBAR -->
+    <!-- ========================================== -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-72 bg-slate-900/95 border-r border-slate-800 flex flex-col transform -translate-x-full md:translate-x-0 sidebar-transition shadow-2xl md:shadow-none">
+        
+        <!-- Logo -->
+        <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-white tracking-tight">ICC Management</h1>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-widest">Portail des Serviteurs</p>
+                </div>
+            </div>
+            <!-- Bouton fermer (Mobile) -->
+            <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-slate-800">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+            <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider px-3 mb-2 mt-2">Menu Principal</p>
+            
+            <!-- Dashboard (Adapté au rôle) -->
+            {% if request.user.role == 'serviteur' %}
+                <a href="{% url 'serviteur_dashboard' %}" 
+                   class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group
+                   {% if request.resolver_match.url_name == 'serviteur_dashboard' %}bg-indigo-600/10 text-indigo-400 border-l-2 border-indigo-500{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-white{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    <span class="font-medium">Mon Espace</span>
+                </a>
+            {% else %}
+                <a href="{% url 'chef_dashboard' %}" 
+                   class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group
+                   {% if request.resolver_match.url_name == 'chef_dashboard' %}bg-indigo-600/10 text-indigo-400 border-l-2 border-indigo-500{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-white{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    <span class="font-medium">Tableau de Bord</span>
+                </a>
+            {% endif %}
+
+            <!-- Analytics (Admin seulement) -->
+            {% if request.user.role == 'admin' %}
+            <a href="{% url 'admin_dashboard' %}" 
+               class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
+               {% if request.resolver_match.url_name == 'admin_dashboard' %}bg-indigo-600/10 text-indigo-400 border-l-2 border-indigo-500{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-white{% endif %}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                <span class="font-medium">Analytics</span>
+            </a>
+
+            <a href="{% url 'admin:index' %}" 
+               class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-slate-400 hover:bg-slate-800/50 hover:text-white">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <span class="font-medium">Administration</span>
+            </a>
+            {% endif %}
+        </nav>
+
+        <!-- Profil Utilisateur (Glassmorphism) -->
+        <div class="p-4 border-t border-slate-800">
+            <div class="bg-slate-800/50 backdrop-blur rounded-xl p-3 flex items-center gap-3 mb-3 border border-slate-700/50">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-white text-sm shadow-lg flex-shrink-0">
+                    {{ request.user.prenom|slice:":1" }}{{ request.user.nom|slice:":1" }}
+                </div>
+                <div class="overflow-hidden flex-1">
+                    <p class="text-sm font-semibold text-white truncate">{{ request.user.prenom }} {{ request.user.nom }}</p>
+                    <p class="text-xs text-indigo-400 truncate capitalize">{{ request.user.get_role_display }}</p>
+                </div>
+            </div>
+            
+            <form method="post" action="{% url 'logout' %}" class="w-full">
+                {% csrf_token %}
+                <button type="submit" class="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-all duration-200 text-sm font-medium border border-red-500/20 hover:border-red-500">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    Déconnexion
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <!-- ========================================== -->
+    <!-- CONTENU PRINCIPAL -->
+    <!-- ========================================== -->
+    <div class="flex-1 md:ml-72 flex flex-col min-h-screen">
+        
+        <!-- Header Sticky (Mobile & Desktop) -->
+        <header class="glass-header sticky top-0 z-30 border-b border-slate-800 px-4 md:px-8 py-4">
+            <div class="flex justify-between items-center gap-4">
+                
+                <!-- Bouton Menu (Mobile) -->
+                <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+
+                <!-- Barre de Recherche -->
+                <form method="get" action="{% url 'global_search' %}" class="flex-1 max-w-xl">
+                    <div class="relative group">
+                        <svg class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        <input type="text" name="q" placeholder="Rechercher un membre, un événement..." 
+                               class="w-full pl-10 pr-4 py-2.5 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm">
+                    </div>
+                </form>
+
+                <!-- Indicateur de rôle (Desktop) -->
+                <div class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-800/50 rounded-full border border-slate-700/50">
+                    <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                    <span class="text-xs font-medium text-slate-400 capitalize">{{ request.user.get_role_display }}</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Zone de Contenu -->
+        <main class="flex-1 p-4 md:p-8 fade-in">
+            
+            <!-- Messages Django (Notifications) -->
+            {% if messages %}
+                <div class="fixed top-20 right-4 md:right-8 z-50 space-y-2 w-full max-w-sm pointer-events-none">
+                    {% for message in messages %}
+                        <div class="pointer-events-auto p-4 rounded-xl shadow-2xl border backdrop-blur-md transform transition-all duration-300 animate-slideInRight
+                            {% if message.tags == 'success' %}bg-green-900/80 border-green-500/30 text-green-100
+                            {% elif message.tags == 'error' %}bg-red-900/80 border-red-500/30 text-red-100
+                            {% elif message.tags == 'warning' %}bg-yellow-900/80 border-yellow-500/30 text-yellow-100
+                            {% else %}bg-indigo-900/80 border-indigo-500/30 text-indigo-100{% endif %}">
+                            <div class="flex items-start gap-3">
+                                <div class="flex-shrink-0 mt-0.5">
+                                    {% if message.tags == 'success' %}
+                                        <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    {% elif message.tags == 'error' %}
+                                        <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    {% else %}
+                                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    {% endif %}
+                                </div>
+                                <p class="text-sm font-medium">{{ message }}</p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Contenu dynamique des pages -->
+            {% block content %}{% endblock %}
+            
+        </main>
+
+        <!-- Footer discret -->
+        <footer class="border-t border-slate-800 p-6 text-center">
+            <p class="text-xs text-slate-600">
+                © 2026 ICC Management. Développé avec ❤️ par <a href="https://klauscv.netlify.app/"><span class="text-indigo-500 font-semibold">KlauzaDev</span></a>
+            </p>
+        </footer>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SCRIPTS -->
+    <!-- ========================================== -->
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+
+        function toggleSidebar() {
+            const isClosed = sidebar.classList.contains('-translate-x-full');
+            if (isClosed) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        }
+
+        // Fermer le menu mobile quand on clique sur un lien
+        document.querySelectorAll('#sidebar a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth < 768) {
+                    sidebar.classList.add('-translate-x-full');
+                    overlay.classList.add('hidden');
+                }
+            });
+        });
+
+        // Auto-dismiss des messages après 4 secondes
+        setTimeout(() => {
+            document.querySelectorAll('.animate-slideInRight').forEach(el => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateX(100%)';
+                setTimeout(() => el.remove(), 300);
+            });
+        }, 4000);
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,31 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | ICC Admin{% endblock %}
+
+{% block branding %}
+<div id="site-name">
+    <a href="{% url 'admin:index' %}" style="display: flex; align-items: center; gap: 12px; text-decoration: none;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+        <div style="display: flex; flex-direction: column; line-height: 1.1;">
+            <span style="font-weight: 700; font-size: 1.1em; color: white;">ICC Management</span>
+            <span style="font-size: 0.65em; color: #94a3b8; text-transform: uppercase;">Administration</span>
+        </div>
+    </a>
+</div>
+{% endblock %}
+
+{% block userlinks %}
+<div id="user-tools" style="display: flex; gap: 20px; align-items: center;">
+    <span style="color: #94a3b8;">Bonjour, <strong style="color: white;">{{ request.user.prenom|default:request.user.username }}</strong></span>
+    <span style="color: #334155;">|</span>
+    <a href="{% url 'chef_dashboard' %}" style="color: #818cf8;">← Dashboard</a>
+    <span style="color: #334155;">|</span>
+    <a href="{% url 'logout' %}" style="color: #f87171;">Déconnexion</a>
+</div>
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% static 'admin/css/icc-dark.css' %}">
+{% endblock %}
