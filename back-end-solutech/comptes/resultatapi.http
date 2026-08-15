@@ -6,7 +6,7 @@
 
 ### ⚠️ IMPORTANT : Après le login, copiez UNIQUEMENT la valeur du token "access"
 ### (la longue chaîne qui commence par "eyJ...") et collez-la ci-dessous, SANS guillemets ni préfixe
-@accessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc4NTk3NDg4LCJpYXQiOjE3Nzg1OTcxODgsImp0aSI6IjBlZDhjNWIwZGNmZDQ3YmM4NjQ4ODgyZTY5ODI1Y2M4IiwidXNlcl9pZCI6IjIiLCJyb2xlIjoiRUxFVkUiLCJwaG9uZSI6IjA2NzgxMzc0MCJ9.G7tuQ-M3HXfasrHAR4FyZGTPZQ-Jqa4RMJkOxsgGcO4"
+@accessToken = "<ACCESS_TOKEN>"
 ### ================================
 ### AUTHENTIFICATION
 ### ================================
@@ -17,8 +17,8 @@ POST {{baseUrl}}/api/auth/login/
 Content-Type: {{contentType}}
 
 {
-  "username": "japhet",
-  "password": "gloiregloire"
+  "username": "<UTILISATEUR>",
+  "password": "<MOT_DE_PASSE>"
 }
 
 ### 👤 Profil utilisateur — Endpoint protégé
@@ -31,8 +31,8 @@ POST {{baseUrl}}/api/auth/refresh/
 Content-Type: {{contentType}}
 
 {
-  "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc3ODY4MzU4OCwiaWF0IjoxNzc4NTk3MTg4LCJqdGkiOiJiYWYzYmMzOWE5NzM0OTk2YjdhOGRhZTM0MWI3NDViNSIsInVzZXJfaWQiOiIyIiwicm9sZSI6IkVMRVZFIiwicGhvbmUiOiIwNjc4MTM3NDAifQ.PFvSXuZUBlqPI4YWNpTM0yE52zbMl73Rk8JGLPVwHxQ",
-  "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc4NTk3NDg4LCJpYXQiOjE3Nzg1OTcxODgsImp0aSI6IjBlZDhjNWIwZGNmZDQ3YmM4NjQ4ODgyZTY5ODI1Y2M4IiwidXNlcl9pZCI6IjIiLCJyb2xlIjoiRUxFVkUiLCJwaG9uZSI6IjA2NzgxMzc0MCJ9.G7tuQ-M3HXfasrHAR4FyZGTPZQ-Jqa4RMJkOxsgGcO4"
+  "refresh": "<ACCESS_TOKEN>",
+  "access": "<ACCESS_TOKEN>"
 }
 
 ### 🚪 Logout — Blacklister le refresh token
@@ -41,8 +41,8 @@ Content-Type: {{contentType}}
 Authorization: Bearer {{accessToken}}
 
 {
-  "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc3ODY4MzU4OCwiaWF0IjoxNzc4NTk3MTg4LCJqdGkiOiJiYWYzYmMzOWE5NzM0OTk2YjdhOGRhZTM0MWI3NDViNSIsInVzZXJfaWQiOiIyIiwicm9sZSI6IkVMRVZFIiwicGhvbmUiOiIwNjc4MTM3NDAifQ.PFvSXuZUBlqPI4YWNpTM0yE52zbMl73Rk8JGLPVwHxQ",
-  "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc4NTk3NDg4LCJpYXQiOjE3Nzg1OTcxODgsImp0aSI6IjBlZDhjNWIwZGNmZDQ3YmM4NjQ4ODgyZTY5ODI1Y2M4IiwidXNlcl9pZCI6IjIiLCJyb2xlIjoiRUxFVkUiLCJwaG9uZSI6IjA2NzgxMzc0MCJ9.G7tuQ-M3HXfasrHAR4FyZGTPZQ-Jqa4RMJkOxsgGcO4"
+  "refresh": "<ACCESS_TOKEN>",
+  "access": "<ACCESS_TOKEN>"
 }
 
 ### ================================
@@ -126,7 +126,7 @@ Authorization: Bearer {{accessToken}}
 
 ### Dans votre terminal, remplacez le token par le vôtre :
 curl -X GET http://127.0.0.1:8000/api/auth/me/ \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc4NTk2NzgxLCJpYXQiOjE3Nzg1OTY0ODIsImp0aSI6IjE1MTgwODQ3YWY3ZjRmYTk5YzcxY2IzZmIzNzYxMjFmIiwidXNlcl9pZCI6IjIiLCJyb2xlIjoiRUxFVkUiLCJwaG9uZSI6IjA2NzgxMzc0MCJ9.bkaPuqofMlzHzFyTI16-ghBw_PGlGBQiOmdIU_CdyS8" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
   -H "Content-Type: application/json"
 
 
@@ -136,7 +136,7 @@ curl -X GET http://127.0.0.1:8000/api/auth/me/ \
 
   curl -X POST http://127.0.0.1:8000/api/auth/login/ \
   -H "Content-Type: application/json" \
-  -d '{"username":"japhet","password":"gloiregloire"}'
+  -d '{"username":"<UTILISATEUR>","password":"<MOT_DE_PASSE>"}'
 
 ### ========
   curl -s -X GET http://127.0.0.1:8000/api/sync/status/ \

@@ -35,4 +35,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'role', 'phone', 'date_joined')
-        read_only_fields = ('id', 'date_joined')
+        # ⚠️ role/username en lecture seule : /me/ étant modifiable par son
+        # propriétaire, un champ role éditable permettrait l'escalade de privilèges.
+        read_only_fields = ('id', 'date_joined', 'role', 'username')
