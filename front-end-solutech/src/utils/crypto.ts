@@ -1,44 +1,12 @@
 /**
  * =============================================================================
- * UTILITAIRES DE CHIFFREMENT
- * Protection des données sensibles des élèves mineurs (Constitution art. 29)
+ * UTILITAIRES D'AFFICHAGE DES DONNÉES SENSIBLES
+ * Protection des données des élèves mineurs (Constitution art. 29)
  * =============================================================================
- * 
- * Note : En production, utiliser Web Crypto API avec des clés gérées
- * par le serveur. Cette implémentation est une simulation pédagogique
- * pour démontrer l'approche sécurisée côté client.
+ *
+ * Note : aucune clé de chiffrement ne doit vivre côté client. Le chiffrement
+ * des données sensibles est assuré par le serveur / le stockage.
  */
-
-const SECRET_KEY = 'SOLUTECH-CONGO-2024-MEPSA-MESRSIT';
-
-/**
- * Chiffre une chaîne de texte avec un algorithme de substitution simple.
- * En production : remplacer par AES-GCM via Web Crypto API.
- */
-export function chiffrerDonnees(texte: string): string {
-  try {
-    const encoded = new TextEncoder().encode(texte + SECRET_KEY);
-    const base64 = btoa(String.fromCharCode(...encoded));
-    return base64;
-  } catch {
-    // Fallback si caractères non supportés
-    return btoa(unescape(encodeURIComponent(texte + SECRET_KEY)));
-  }
-}
-
-/**
- * Déchiffre une chaîne précédemment chiffrée.
- */
-export function dechiffrerDonnees(texteChiffre: string): string {
-  try {
-    const decoded = atob(texteChiffre);
-    const bytes = new Uint8Array(decoded.split('').map((c) => c.charCodeAt(0)));
-    const result = new TextDecoder().decode(bytes);
-    return result.replace(SECRET_KEY, '');
-  } catch {
-    return decodeURIComponent(escape(atob(texteChiffre))).replace(SECRET_KEY, '');
-  }
-}
 
 /**
  * Hache un identifiant sensible pour l'affichage masqué.

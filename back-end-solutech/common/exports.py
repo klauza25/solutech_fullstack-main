@@ -13,6 +13,14 @@ class _EchoBuffer:
         return value
 
 
+def csv_safe(value: object) -> str:
+    """Neutralise l'injection de formules (Excel/LibreOffice) dans une cellule."""
+    text = "" if value is None else str(value)
+    if text[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        text = "'" + text
+    return text
+
+
 def stream_csv_response(
     filename: str,
     header: Sequence[str],
@@ -24,7 +32,7 @@ def stream_csv_response(
     def generate():
         yield "\ufeff" + writer.writerow(header)
         for row in rows:
-            yield writer.writerow(["" if v is None else v for v in row])
+            yield writer.writerow([csv_safe(v) for v in row])
 
     response = StreamingHttpResponse(generate(), content_type="text/csv; charset=utf-8")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'

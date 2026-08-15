@@ -1,4 +1,5 @@
 import os
+import secrets
 import sys
 from pathlib import Path
 import django
@@ -43,17 +44,37 @@ classe, _ = Classe.objects.get_or_create(
 print('Classe:', classe)
 
 # 3. Users
-admin, _ = User.objects.get_or_create(username='GLOIRE', defaults={'email':'admin@test.local','role':'ADMIN','is_staff':True})
-admin.set_password('gloire')
+def seed_password(env_name):
+    """Mot de passe fourni par l'environnement, sinon généré aléatoirement (jamais en dur)."""
+    value = os.environ.get(env_name)
+    if value:
+        return value, False
+    return secrets.token_urlsafe(16), True
+
+
+admin_username = os.environ.get('SOLUTECH_ADMIN_USERNAME', 'admin_seed')
+admin, _ = User.objects.get_or_create(username=admin_username, defaults={'email':'admin@test.local','role':'ADMIN','is_staff':True})
+admin_password, admin_generated = seed_password('SOLUTECH_ADMIN_PASSWORD')
+admin.set_password(admin_password)
 admin.save()
 
 teacher, _ = User.objects.get_or_create(username='prof1', defaults={'email':'prof1@test.local','role':'PROFESSEUR','ecole':ecole})
-teacher.set_password('prof1')
+teacher_password, teacher_generated = seed_password('SOLUTECH_SEED_TEACHER_PASSWORD')
+teacher.set_password(teacher_password)
 teacher.save()
 
 parent, _ = User.objects.get_or_create(username='parent1', defaults={'email':'parent1@test.local','role':'PARENT'})
-parent.set_password('parent1')
+parent_password, parent_generated = seed_password('SOLUTECH_SEED_PARENT_PASSWORD')
+parent.set_password(parent_password)
 parent.save()
+
+for username, password, generated in (
+    (admin.username, admin_password, admin_generated),
+    (teacher.username, teacher_password, teacher_generated),
+    (parent.username, parent_password, parent_generated),
+):
+    if generated:
+        print(f'Generated password for {username}: {password}')
 
 print('Users created: admin, teacher, parent')
 

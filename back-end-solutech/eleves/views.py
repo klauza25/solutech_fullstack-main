@@ -3,6 +3,7 @@ import openpyxl
 from django.db import transaction
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
 from common.scoping import RoleScopedQuerysetMixin
@@ -24,7 +25,19 @@ class EleveViewSet(RoleScopedQuerysetMixin, viewsets.ModelViewSet):
     scope_parent_path = "parents"
 
     def get_serializer_class(self):
-        return EleveDetailSerializer if self.action == "retrieve" else EleveListSerializer
+        if self.action in ("retrieve", "create", "update", "partial_update"):
+            return EleveDetailSerializer
+        return EleveListSerializer
+
+    def perform_create(self, serializer):
+        # L'école n'est jamais acceptée depuis le client (voir serializer) : elle
+        # est déduite de l'utilisateur pour interdire toute création inter-établissement.
+        if self.request.user.is_superuser:
+            serializer.save()
+            return
+        if not self.request.user.ecole_id:
+            raise ValidationError("Aucun établissement de rattachement pour cet utilisateur.")
+        serializer.save(ecole=self.request.user.ecole)
 
     @action(detail=False, methods=["post"], parser_classes=[MultiPartParser])
     def import_excel(self, request):
@@ -32,6 +45,13 @@ class EleveViewSet(RoleScopedQuerysetMixin, viewsets.ModelViewSet):
         file = request.FILES.get("file")
         if not file:
             return Response({"detail": "Fichier Excel requis"}, status=status.HTTP_400_BAD_REQUEST)
+
+        ecole = request.user.ecole
+        if ecole is None:
+            return Response(
+                {"detail": "Aucun établissement de rattachement pour cet utilisateur."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         results = {"created": 0, "updated": 0, "errors": []}
         
@@ -47,12 +67,23 @@ class EleveViewSet(RoleScopedQuerysetMixin, viewsets.ModelViewSet):
                     try:
                         matricule = str(row[0]).strip()
                         if not matricule: continue
-                        
+
+                        # Scope établissement : un import ne peut jamais écraser la fiche
+                        # d'un élève inscrit dans une autre école.
+                        conflit = Eleve.objects.filter(matricule_mepsa=matricule).exclude(ecole=ecole).exists()
+                        if conflit:
+                            results["errors"].append({
+                                "row": idx,
+                                "error": "Matricule déjà utilisé dans un autre établissement",
+                            })
+                            continue
+
                         eleve, created = Eleve.objects.update_or_create(
                             matricule_mepsa=matricule,
+                            ecole=ecole,
                             defaults={
                                 "nom": row[1], "prenom": row[2], "genre": row[3],
-                                "date_naissance": row[4], "ecole": request.user.ecole
+                                "date_naissance": row[4],
                             }
                         )
                         if created: results["created"] += 1
@@ -65,6 +96,9 @@ class EleveViewSet(RoleScopedQuerysetMixin, viewsets.ModelViewSet):
 
         except Exception as e:
             logger.error(f"Import Excel échoué: {e}")
-            return Response({"detail": str(e), "results": results}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Import impossible : fichier invalide ou données rejetées.", "results": results},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return Response({"message": "Import réussi", "results": results}, status=status.HTTP_200_OK)

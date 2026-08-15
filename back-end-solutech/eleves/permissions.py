@@ -12,3 +12,5 @@ class EleveScopePermission(RoleScopePermission):
     ecole_path = "ecole"
     parent_path = "parents"
     allowed_roles = STAFF_ROLES + (Role.PARENT,)
+    # Création/modification/suppression et import Excel : direction seule
+    write_roles = (Role.ADMIN, Role.DIRECTEUR)

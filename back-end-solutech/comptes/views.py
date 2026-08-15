@@ -1,30 +1,17 @@
-from django.shortcuts import render
-#from django.utils import timezone
-from datetime import datetime
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenBlacklistView
+from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import CustomTokenObtainPairSerializer
 
 from rest_framework import generics, permissions
-from rest_framework.throttling import UserRateThrottle
-from .models import User
+from rest_framework.throttling import ScopedRateThrottle, UserRateThrottle
 from .serializers import UserProfileSerializer
-
-
-
-
-def compte(request):
-    
-    
-
-    date = datetime.now()
-
-    return render(request, "index.html", { 'date':date })
-
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     """Point d'entrée /login/ avec notre sérialiseur personnalisé"""
     serializer_class = CustomTokenObtainPairSerializer
+    # Limite les tentatives de connexion (anti-force brute), voir DEFAULT_THROTTLE_RATES['login']
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "login"
     
     
 class UserProfileView(generics.RetrieveUpdateAPIView):

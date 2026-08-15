@@ -19,9 +19,25 @@ class EleveListSerializer(serializers.ModelSerializer):
 class EleveDetailSerializer(serializers.ModelSerializer):
     """Sérialiseur complet pour vue individuelle"""
     liens_familiaux = LienFamilleSerializer(many=True, read_only=True, source="lienfamille_set")
-    
+
+    # Champs de santé : réservés à la direction et aux parents de l'élève (CDC §7.2)
+    MEDICAL_FIELDS = ("groupe_sanguin", "vaccinations_a_jour", "notes_medicales")
+
     class Meta:
         model = Eleve
         fields = "__all__"
-        read_only_fields = ["created_at", "updated_at", "historique_redoublements"]
-        # notes_medicales présent mais protégé par permissions en vue
+        # `ecole` est déduite de l'utilisateur en vue : l'accepter du client
+        # permettrait de rattacher/déplacer un élève vers un autre établissement.
+        read_only_fields = ["created_at", "updated_at", "historique_redoublements", "ecole"]
+
+    def get_fields(self):
+        fields = super().get_fields()
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if user is None or user.is_superuser:
+            return fields
+        if user.role in ("ADMIN", "DIRECTEUR") or user.role == "PARENT":
+            return fields
+        for name in self.MEDICAL_FIELDS:
+            fields.pop(name, None)
+        return fields

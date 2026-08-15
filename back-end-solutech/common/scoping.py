@@ -98,7 +98,11 @@ class SchoolScopeMixin:
         if user.is_superuser:
             return queryset
 
+        # Sans école de rattachement, aucun objet métier n'est visible
+        if not user.ecole_id:
+            return queryset.none()
+
         # Filtrage ORM strict (exécuté en SQL, pas en Python)
         if hasattr(queryset.model, "ecole"):
-            return queryset.filter(ecole=user.ecole)
+            return queryset.filter(ecole_id=user.ecole_id)
         return queryset.none()  # Sécurité : modèle sans champ ecole → rien

@@ -38,14 +38,20 @@ class RoleScopePermission(permissions.BasePermission):
     eleve_path: str | None = None
     # None = tout utilisateur authentifié
     allowed_roles: tuple[str, ...] | None = None
+    # Rôles autorisés à écrire ; None = mêmes rôles qu'en lecture
+    write_roles: tuple[str, ...] | None = None
 
     def has_permission(self, request, view):
         user = request.user
         if not (user and user.is_authenticated):
             return False
-        if user.is_superuser or self.allowed_roles is None:
+        if user.is_superuser:
             return True
-        return has_role(user, self.allowed_roles)
+        if self.allowed_roles is not None and not has_role(user, self.allowed_roles):
+            return False
+        if request.method not in permissions.SAFE_METHODS and self.write_roles is not None:
+            return has_role(user, self.write_roles)
+        return True
 
     def has_object_permission(self, request, view, obj):
         user = request.user

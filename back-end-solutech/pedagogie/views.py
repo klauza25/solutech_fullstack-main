@@ -10,6 +10,21 @@ from common.scoping import RoleScopedQuerysetMixin
 from .models import Evaluation, Presence
 from .serializers import EvaluationCreateSerializer, EvaluationReadSerializer, PresenceSerializer
 from .permissions import PedagogyScopePermission
+from rest_framework.exceptions import PermissionDenied
+
+
+def check_school_scope(user, validated_data):
+    """Interdit la saisie de notes/présences sur une classe ou un élève d'un autre établissement."""
+    if user.is_superuser:
+        return
+    classe = validated_data.get("classe")
+    eleve = validated_data.get("eleve")
+    if user.ecole_id is None:
+        raise PermissionDenied("Aucun établissement de rattachement pour cet utilisateur.")
+    if classe is not None and classe.ecole_id != user.ecole_id:
+        raise PermissionDenied("Classe hors de votre établissement.")
+    if eleve is not None and eleve.ecole_id != user.ecole_id:
+        raise PermissionDenied("Élève hors de votre établissement.")
 
 
 class PedagogieScopeMixin(RoleScopedQuerysetMixin):
@@ -29,11 +44,16 @@ class EvaluationViewSet(PedagogieScopeMixin, viewsets.ModelViewSet):
         return EvaluationCreateSerializer if self.action in ["create", "update", "partial_update"] else EvaluationReadSerializer
 
     def perform_create(self, serializer):
+        check_school_scope(self.request.user, serializer.validated_data)
         # Pré-remplit la date si absente
         if not serializer.validated_data.get("date_eval"):
             serializer.save(date_eval=timezone.now().date())
         else:
             serializer.save()
+
+    def perform_update(self, serializer):
+        check_school_scope(self.request.user, serializer.validated_data)
+        serializer.save()
 
 
 class PresenceViewSet(PedagogieScopeMixin, viewsets.ModelViewSet):
@@ -41,7 +61,12 @@ class PresenceViewSet(PedagogieScopeMixin, viewsets.ModelViewSet):
     base_queryset = Presence.objects.select_related("eleve", "classe__ecole")
 
     def perform_create(self, serializer):
+        check_school_scope(self.request.user, serializer.validated_data)
         serializer.save(recorded_by=self.request.user)
+
+    def perform_update(self, serializer):
+        check_school_scope(self.request.user, serializer.validated_data)
+        serializer.save()
 
     @action(
         detail=False,

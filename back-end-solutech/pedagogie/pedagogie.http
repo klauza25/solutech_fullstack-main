@@ -3,14 +3,14 @@ POST http://127.0.0.1:8000/api/auth/login/
 Content-Type: application/json
 
 {
-  "username": "GLOIRE",
-  "password": "gloire"
+  "username": "<UTILISATEUR>",
+  "password": "<MOT_DE_PASSE>"
 }
 
 ### Create Evaluation (requires token from above)
 POST http://127.0.0.1:8000/api/pedagogie/evaluations/
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Authorization: Bearer <ACCESS_TOKEN>
 
 {
   "eleve": 1,
@@ -26,17 +26,17 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ### List Evaluations
 GET http://127.0.0.1:8000/api/pedagogie/evaluations/
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Authorization: Bearer <ACCESS_TOKEN>
 
 ### Retrieve Single Evaluation
 GET http://127.0.0.1:8000/api/pedagogie/evaluations/1/
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Authorization: Bearer <ACCESS_TOKEN>
 
 ### Update Evaluation
 PATCH http://127.0.0.1:8000/api/pedagogie/evaluations/1/
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Authorization: Bearer <ACCESS_TOKEN>
 
 {
   "note_sur_20": 16.75

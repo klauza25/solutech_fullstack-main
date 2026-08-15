@@ -27,4 +27,9 @@ urlpatterns = [
     path("api/sync/", include("sync.urls")),  # 🔗 Monte le module offline
     path("api/eleves/", include("eleves.urls")),
     path("api/pedagogie/", include("pedagogie.urls")),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
+
+# Les médias ne sont servis par Django qu'en développement ; en production c'est
+# le rôle du serveur web (nginx) avec ses propres contrôles d'accès.
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
