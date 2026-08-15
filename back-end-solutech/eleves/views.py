@@ -6,31 +6,28 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
+from common.scoping import RoleScopedQuerysetMixin
 from .models import Eleve
 from .serializers import EleveListSerializer, EleveDetailSerializer
 from .permissions import EleveScopePermission
 
 logger = logging.getLogger("apps.eleves")
 
-class EleveViewSet(viewsets.ModelViewSet):
+class EleveViewSet(RoleScopedQuerysetMixin, viewsets.ModelViewSet):
     """CRUD Élèves avec scope par école/parent & import Excel (CDC §2.1, §4.5, §7.2)"""
     permission_classes = [permissions.IsAuthenticated, EleveScopePermission]
-    
+    base_queryset = (
+        Eleve.objects.filter(is_active=True)
+        .select_related("ecole", "classe_actuelle")
+        .prefetch_related("parents")
+    )
+    scope_ecole_path = "ecole"
+    scope_parent_path = "parents"
+
     def get_serializer_class(self):
         if self.action in ("retrieve", "create", "update", "partial_update"):
             return EleveDetailSerializer
         return EleveListSerializer
-
-    def get_queryset(self):
-        user = self.request.user
-        qs = Eleve.objects.filter(is_active=True).select_related("ecole", "classe_actuelle").prefetch_related("parents")
-        
-        if user.is_superuser: return qs
-        if user.role in ["ADMIN", "DIRECTEUR", "INSPECTEUR", "PROFESSEUR"]:
-            return qs.filter(ecole_id=user.ecole_id) if user.ecole_id else qs.none()
-        if user.role == "PARENT":
-            return qs.filter(parents=user)
-        return qs.none()
 
     def perform_create(self, serializer):
         # L'école n'est jamais acceptée depuis le client (voir serializer) : elle

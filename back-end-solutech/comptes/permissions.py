@@ -1,17 +1,14 @@
-from rest_framework import permissions
+from common.permissions import IsRole
+from common.roles import Role
 
-class IsRole(permissions.BasePermission):
-    """Permission générique pour vérifier si l'utilisateur a un rôle spécifique"""
-    allowed_roles = []
+__all__ = ["IsRole", "IsAdminOrDirecteur", "IsProfesseur", "IsEleveOrParent"]
 
-    def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role in self.allowed_roles
 
 class IsAdminOrDirecteur(IsRole):
-    allowed_roles = ['ADMIN', 'DIRECTEUR']
+    allowed_roles = (Role.ADMIN, Role.DIRECTEUR)
 
 class IsProfesseur(IsRole):
-    allowed_roles = ['PROFESSEUR']
+    allowed_roles = (Role.PROFESSEUR,)
 
 class IsEleveOrParent(IsRole):
-    allowed_roles = ['ELEVE', 'PARENT']
+    allowed_roles = (Role.ELEVE, Role.PARENT)

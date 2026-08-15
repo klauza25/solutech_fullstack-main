@@ -1,16 +1,19 @@
 from rest_framework import permissions
 
-DIRECTION_ROLES = ["ADMIN", "DIRECTEUR"]
+from common.roles import DIRECTION_ROLES, has_role
+from common.scoping import resolve_attr
 
 
 class IsDirectionOrReadOnly(permissions.BasePermission):
     """Lecture pour tout utilisateur authentifié, écriture réservée à la direction."""
 
     def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
         user = request.user
-        return bool(user and user.is_authenticated and (user.is_superuser or user.role in DIRECTION_ROLES))
+        if not (user and user.is_authenticated):
+            return False
+        if request.method in permissions.SAFE_METHODS or user.is_superuser:
+            return True
+        return has_role(user, DIRECTION_ROLES)
 
 
 class IsInSameSchool(permissions.BasePermission):
@@ -24,6 +27,5 @@ class IsInSameSchool(permissions.BasePermission):
         if request.user.is_superuser:
             return True
         # Sinon, l'école doit correspondre
-        if hasattr(obj, "ecole"):
-            return request.user.ecole_id is not None and obj.ecole_id == request.user.ecole_id
-        return False
+        ecole = resolve_attr(obj, "ecole")
+        return ecole is not None and ecole == request.user.ecole

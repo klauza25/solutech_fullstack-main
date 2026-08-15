@@ -30,13 +30,16 @@ class ClasseViewSet(SchoolScopeMixin, viewsets.ModelViewSet):
     - Isolation automatique via mixin + permission objet
     - Écriture réservée à la direction (ADMIN/DIRECTEUR)
     """
-    queryset = Classe.objects.filter(is_active=True).select_related("ecole")
     serializer_class = ClasseSerializer
     permission_classes = [
         permissions.IsAuthenticated,
         IsInSameSchool,
         IsDirectionOrReadOnly,
     ]
+
+    def get_queryset(self):
+        # select_related évite les requêtes N+1 sur la FK ecole
+        return Classe.objects.filter(is_active=True).select_related("ecole")
 
     def perform_create(self, serializer):
         # Empêche la création d'une classe dans un autre établissement
