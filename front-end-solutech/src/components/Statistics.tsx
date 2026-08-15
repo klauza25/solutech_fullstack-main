@@ -9,50 +9,25 @@
 import { useMemo } from 'react';
 import { TrendingUp, Users, GraduationCap, AlertTriangle, BarChart3 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { StatCard } from '@/components/ui/StatCard';
+import { calculerStatistiques, moyenneSur20, pourcentage, repartitionParSexe, SEUIL_BON, SEUIL_ECHEC } from '@/utils/stats';
 
 export function Statistics() {
   const { eleves, enseignants, notes, presences, classes } = useApp();
 
-  const stats = useMemo(() => {
-    const totalEleves = eleves.length;
-    const totalFilles = eleves.filter((e) => e.sexe === 'F').length;
-    const totalGarcons = totalEleves - totalFilles;
-    const totalEnseignants = enseignants.length;
-    const tauxPresence = presences.length > 0
-      ? Math.round((presences.filter((p) => p.statut === 'PRESENT').length / presences.length) * 100)
-      : 0;
-    const moyenneGenerale = notes.length > 0
-      ? notes.reduce((acc, n) => acc + (n.note / n.noteSur) * 20, 0) / notes.length
-      : 0;
-    const notesFaibles = notes.filter((n) => (n.note / n.noteSur) * 20 < 10).length;
-    const tauxReussite = notes.length > 0
-      ? Math.round(((notes.length - notesFaibles) / notes.length) * 100)
-      : 0;
-
-    return {
-      totalEleves,
-      totalFilles,
-      totalGarcons,
-      totalEnseignants,
-      tauxPresence,
-      moyenneGenerale,
-      notesFaibles,
-      tauxReussite,
-    };
-  }, [eleves, enseignants, notes, presences]);
+  const stats = useMemo(
+    () => calculerStatistiques({ eleves, enseignants, notes, presences }),
+    [eleves, enseignants, notes, presences]
+  );
 
   const statsParClasse = useMemo(() => {
     return classes.map((c) => {
       const elevesClasse = eleves.filter((e) => e.classeId === c.id);
-      const notesClasse = notes.filter((n) => n.classeId === c.id);
-      const moyenne = notesClasse.length > 0
-        ? notesClasse.reduce((acc, n) => acc + (n.note / n.noteSur) * 20, 0) / notesClasse.length
-        : 0;
       return {
         classe: c.nom,
         eleves: elevesClasse.length,
-        filles: elevesClasse.filter((e) => e.sexe === 'F').length,
-        moyenne,
+        filles: repartitionParSexe(elevesClasse).filles,
+        moyenne: moyenneSur20(notes.filter((n) => n.classeId === c.id)),
       };
     });
   }, [classes, eleves, notes]);
@@ -63,10 +38,10 @@ export function Statistics() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard icon={<Users className="w-5 h-5" />} label="Élèves inscrits" value={stats.totalEleves} color="bg-blue-500" />
-        <KpiCard icon={<GraduationCap className="w-5 h-5" />} label="Enseignants" value={stats.totalEnseignants} color="bg-emerald-500" />
-        <KpiCard icon={<TrendingUp className="w-5 h-5" />} label="Moyenne générale" value={`${stats.moyenneGenerale.toFixed(1)}/20`} color="bg-violet-500" />
-        <KpiCard icon={<BarChart3 className="w-5 h-5" />} label="Taux de réussite" value={`${stats.tauxReussite}%`} color="bg-amber-500" />
+        <StatCard icon={<Users className="w-5 h-5" />} label="Élèves inscrits" value={stats.totalEleves} color="bg-blue-500" />
+        <StatCard icon={<GraduationCap className="w-5 h-5" />} label="Enseignants" value={stats.totalEnseignants} color="bg-emerald-500" />
+        <StatCard icon={<TrendingUp className="w-5 h-5" />} label="Moyenne générale" value={`${stats.moyenneGenerale.toFixed(1)}/20`} color="bg-violet-500" />
+        <StatCard icon={<BarChart3 className="w-5 h-5" />} label="Taux de réussite" value={`${stats.tauxReussite}%`} color="bg-amber-500" />
       </div>
 
       {/* Démographie */}
@@ -127,11 +102,11 @@ export function Statistics() {
                   <td className="font-medium">{s.classe}</td>
                   <td>{s.eleves}</td>
                   <td>{s.filles}</td>
-                  <td className={`font-bold ${s.moyenne >= 10 ? 'text-success' : 'text-error'}`}>
+                  <td className={`font-bold ${s.moyenne >= SEUIL_ECHEC ? 'text-success' : 'text-error'}`}>
                     {s.moyenne.toFixed(1)}/20
                   </td>
                   <td>
-                    {s.moyenne >= 14 ? 'Bon' : s.moyenne >= 10 ? 'Moyen' : 'Faible'}
+                    {s.moyenne >= SEUIL_BON ? 'Bon' : s.moyenne >= SEUIL_ECHEC ? 'Moyen' : 'Faible'}
                   </td>
                 </tr>
               ))}
@@ -152,22 +127,8 @@ export function Statistics() {
   );
 }
 
-function KpiCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string | number; color: string }) {
-  return (
-    <div className="card bg-base-100 shadow-sm">
-      <div className="card-body p-4">
-        <div className={`w-9 h-9 ${color} rounded-lg flex items-center justify-center text-white`}>
-          {icon}
-        </div>
-        <p className="text-2xl font-bold mt-2">{value}</p>
-        <p className="text-xs text-base-content/60">{label}</p>
-      </div>
-    </div>
-  );
-}
-
 function BarreProgression({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
-  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+  const pct = pourcentage(value, total);
   return (
     <div>
       <div className="flex justify-between text-xs mb-1">

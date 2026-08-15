@@ -10,6 +10,7 @@ import { useState, useMemo } from 'react';
 import { CalendarCheck, UserCheck, UserX, Clock, AlertCircle, Save, Filter } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { getEleveById, getClasseById } from '@/data/mockData';
+import { EmptyState } from '@/components/ui/EmptyState';
 import type { Presence } from '@/types';
 
 const STATUTS = [
@@ -180,10 +181,10 @@ export function AttendanceTracker() {
           );
         })}
         {elevesFiltres.length === 0 && (
-          <div className="text-center py-8 text-base-content/50 text-sm">
-            <Filter className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            Sélectionnez une classe pour faire l'appel
-          </div>
+          <EmptyState
+            icon={<Filter className="w-8 h-8" />}
+            message="Sélectionnez une classe pour faire l'appel"
+          />
         )}
       </div>
     </div>

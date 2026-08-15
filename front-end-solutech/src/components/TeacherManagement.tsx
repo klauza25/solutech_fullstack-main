@@ -9,6 +9,7 @@ import { useState, useMemo } from 'react';
 import { Search, GraduationCap, Mail, Phone, BookOpen, Award } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { getClasseById } from '@/data/mockData';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export function TeacherManagement() {
   const { enseignants } = useApp();
@@ -92,9 +93,7 @@ export function TeacherManagement() {
         ))}
       </div>
 
-      {filtered.length === 0 && (
-        <div className="text-center py-8 text-base-content/50 text-sm">Aucun enseignant trouvé</div>
-      )}
+      {filtered.length === 0 && <EmptyState message="Aucun enseignant trouvé" />}
     </div>
   );
 }

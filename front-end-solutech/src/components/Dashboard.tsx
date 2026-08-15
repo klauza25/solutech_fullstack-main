@@ -18,26 +18,18 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { Link } from 'react-router-dom';
+import { StatCard } from '@/components/ui/StatCard';
+import { calculerStatistiques, notesFaibles } from '@/utils/stats';
 
 export function Dashboard() {
   const { utilisateur, etablissement, eleves, enseignants, notes, presences, isOnline } = useApp();
   const role = utilisateur?.role;
 
-  // Calculs statistiques
-  const totalEleves = eleves.length;
-  const totalFilles = eleves.filter((e) => e.sexe === 'F').length;
-  const totalGarcons = totalEleves - totalFilles;
-  const totalEnseignants = enseignants.length;
-  const tauxPresence = presences.length > 0
-    ? Math.round((presences.filter((p) => p.statut === 'PRESENT').length / presences.length) * 100)
-    : 0;
-  const moyenneGenerale = notes.length > 0
-    ? (notes.reduce((acc, n) => acc + (n.note / n.noteSur) * 20, 0) / notes.length).toFixed(1)
-    : '0';
+  const stats = calculerStatistiques({ eleves, enseignants, notes, presences });
 
   // Alertes générées automatiquement
   const elevesAbscents = presences.filter((p) => p.statut === 'ABSENT');
-  const notesFaibles = notes.filter((n) => (n.note / n.noteSur) * 20 < 10);
+  const alertesNotes = notesFaibles(notes);
 
   return (
     <div className="space-y-6">
@@ -66,28 +58,28 @@ export function Dashboard() {
         <StatCard
           icon={<Users className="w-5 h-5" />}
           label="Élèves"
-          value={totalEleves.toString()}
-          sub={`${totalFilles} filles · ${totalGarcons} garçons`}
+          value={stats.totalEleves}
+          sub={`${stats.totalFilles} filles · ${stats.totalGarcons} garçons`}
           color="bg-blue-500"
         />
         <StatCard
           icon={<GraduationCap className="w-5 h-5" />}
           label="Enseignants"
-          value={totalEnseignants.toString()}
+          value={stats.totalEnseignants}
           sub="Corps enseignant"
           color="bg-emerald-500"
         />
         <StatCard
           icon={<CalendarCheck className="w-5 h-5" />}
           label="Présence"
-          value={`${tauxPresence}%`}
+          value={`${stats.tauxPresence}%`}
           sub="Aujourd'hui"
           color="bg-amber-500"
         />
         <StatCard
           icon={<TrendingUp className="w-5 h-5" />}
           label="Moyenne"
-          value={moyenneGenerale}
+          value={stats.moyenneGenerale.toFixed(1)}
           sub="Générale"
           color="bg-violet-500"
         />
@@ -97,7 +89,7 @@ export function Dashboard() {
       {role === 'ADMIN' || role === 'DIRECTEUR' ? (
         <AdminDashboard
           elevesAbscents={elevesAbscents.length}
-          notesFaibles={notesFaibles.length}
+          notesFaibles={alertesNotes.length}
         />
       ) : role === 'ENSEIGNANT' ? (
         <EnseignantDashboard />
@@ -123,38 +115,6 @@ export function Dashboard() {
               <span>Accès parental contrôlé et traçable</span>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** Carte statistique réutilisable */
-function StatCard({
-  icon,
-  label,
-  value,
-  sub,
-  color,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  sub: string;
-  color: string;
-}) {
-  return (
-    <div className="card bg-base-100 shadow-sm">
-      <div className="card-body p-4">
-        <div className="flex items-center justify-between">
-          <div className={`w-9 h-9 ${color} rounded-lg flex items-center justify-center text-white`}>
-            {icon}
-          </div>
-        </div>
-        <div className="mt-2">
-          <p className="text-2xl font-bold">{value}</p>
-          <p className="text-xs text-base-content/60">{label}</p>
-          <p className="text-[10px] text-base-content/40 mt-0.5">{sub}</p>
         </div>
       </div>
     </div>

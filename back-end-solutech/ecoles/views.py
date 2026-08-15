@@ -1,6 +1,5 @@
-from django.shortcuts import render
 from rest_framework import viewsets, permissions
-from .models import Classe, Ecole
+from .models import Ecole, Classe
 from .serializers import ClasseSerializer, EcoleSerializer
 from .mixins import SchoolScopeMixin
 from .permissions import IsInSameSchool
