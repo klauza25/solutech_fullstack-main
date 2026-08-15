@@ -35,6 +35,8 @@ interface AppContextType {
   isOnline: boolean;
   isSyncing: boolean;
   pendingCount: number;
+  failedCount: number;
+  syncError: string | null;
   lastSync: string | null;
   forceSync: () => void;
 }
@@ -52,22 +54,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [notes, setNotes] = useState<Note[]>(mockNotes);
   const [presences, setPresences] = useState<Presence[]>(mockPresences);
 
-  const { isOnline, isSyncing, pendingCount, lastSync, queueForSync, forceSync } = useOffline();
+  const { isOnline, isSyncing, pendingCount, failedCount, syncError, lastSync, queueForSync, forceSync } = useOffline();
 
   // Restauration de la session au démarrage
   useEffect(() => {
-    const saved = localStorage.getItem(AUTH_KEY);
-    if (saved) {
+    try {
+      const saved = localStorage.getItem(AUTH_KEY);
+      if (!saved) return;
+      const parsed = JSON.parse(saved) as { userId: string };
+      const user = mockUtilisateurs.find((u) => u.id === parsed.userId);
+      if (user) {
+        setUtilisateur(user);
+        const etab = mockEtablissements.find((e) => e.id === user.etablissementId);
+        if (etab) setEtablissement(etab);
+      }
+    } catch (err) {
+      console.error('[Auth] Session locale illisible, réinitialisation', err);
       try {
-        const parsed = JSON.parse(saved) as { userId: string };
-        const user = mockUtilisateurs.find((u) => u.id === parsed.userId);
-        if (user) {
-          setUtilisateur(user);
-          const etab = mockEtablissements.find((e) => e.id === user.etablissementId);
-          if (etab) setEtablissement(etab);
-        }
-      } catch {
         localStorage.removeItem(AUTH_KEY);
+      } catch {
+        // stockage indisponible : rien de plus à faire
       }
     }
   }, []);
@@ -79,7 +85,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
     if (user) {
       setUtilisateur(user);
-      localStorage.setItem(AUTH_KEY, JSON.stringify({ userId: user.id, timestamp: Date.now() }));
+      try {
+        localStorage.setItem(AUTH_KEY, JSON.stringify({ userId: user.id, timestamp: Date.now() }));
+      } catch (err) {
+        // Session non persistée : l'utilisateur devra se reconnecter au prochain démarrage
+        console.error('[Auth] Session non persistée (stockage local indisponible)', err);
+      }
       const etab = mockEtablissements.find((e) => e.id === user.etablissementId);
       if (etab) setEtablissement(etab);
       return true;
@@ -90,7 +101,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => {
     setUtilisateur(null);
     setEtablissement(null);
-    localStorage.removeItem(AUTH_KEY);
+    try {
+      localStorage.removeItem(AUTH_KEY);
+    } catch (err) {
+      console.error('[Auth] Suppression de la session locale impossible', err);
+    }
   }, []);
 
   const addEleve = useCallback((eleveData: Omit<Eleve, 'id' | 'syncStatus'>) => {
@@ -99,19 +114,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       id: `e-${Date.now()}`,
       syncStatus: isOnline ? 'SYNCED' : 'PENDING',
     };
-    setEleves((prev) => [...prev, newEleve]);
-    if (!isOnline) {
-      queueForSync({ entityType: 'ELEVE', action: 'CREATE', payload: newEleve });
+    // Une mise en file échouée doit se voir : statut ERROR au lieu de PENDING
+    if (!isOnline && !queueForSync({ entityType: 'ELEVE', action: 'CREATE', payload: newEleve })) {
+      newEleve.syncStatus = 'ERROR';
     }
+    setEleves((prev) => [...prev, newEleve]);
   }, [isOnline, queueForSync]);
 
   const updateEleve = useCallback((id: string, data: Partial<Eleve>) => {
-    setEleves((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, ...data, syncStatus: isOnline ? 'SYNCED' : 'PENDING' as const } : e))
-    );
-    if (!isOnline) {
-      queueForSync({ entityType: 'ELEVE', action: 'UPDATE', payload: { id, ...data } });
+    let syncStatus: Eleve['syncStatus'] = isOnline ? 'SYNCED' : 'PENDING';
+    if (!isOnline && !queueForSync({ entityType: 'ELEVE', action: 'UPDATE', payload: { id, ...data } })) {
+      syncStatus = 'ERROR';
     }
+    setEleves((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, ...data, syncStatus } : e))
+    );
   }, [isOnline, queueForSync]);
 
   const addNote = useCallback((noteData: Omit<Note, 'id' | 'syncStatus'>) => {
@@ -120,10 +137,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       id: `n-${Date.now()}`,
       syncStatus: isOnline ? 'SYNCED' : 'PENDING',
     };
-    setNotes((prev) => [...prev, newNote]);
-    if (!isOnline) {
-      queueForSync({ entityType: 'NOTE', action: 'CREATE', payload: newNote });
+    if (!isOnline && !queueForSync({ entityType: 'NOTE', action: 'CREATE', payload: newNote })) {
+      newNote.syncStatus = 'ERROR';
     }
+    setNotes((prev) => [...prev, newNote]);
   }, [isOnline, queueForSync]);
 
   const addPresence = useCallback((presenceData: Omit<Presence, 'id' | 'syncStatus'>) => {
@@ -132,10 +149,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       id: `p-${Date.now()}`,
       syncStatus: isOnline ? 'SYNCED' : 'PENDING',
     };
-    setPresences((prev) => [...prev, newPresence]);
-    if (!isOnline) {
-      queueForSync({ entityType: 'PRESENCE', action: 'CREATE', payload: newPresence });
+    if (!isOnline && !queueForSync({ entityType: 'PRESENCE', action: 'CREATE', payload: newPresence })) {
+      newPresence.syncStatus = 'ERROR';
     }
+    setPresences((prev) => [...prev, newPresence]);
   }, [isOnline, queueForSync]);
 
   const value: AppContextType = {
@@ -156,6 +173,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     isOnline,
     isSyncing,
     pendingCount,
+    failedCount,
+    syncError,
     lastSync,
     forceSync,
   };

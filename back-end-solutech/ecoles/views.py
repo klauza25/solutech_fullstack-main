@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from rest_framework import viewsets, permissions
-from .models import Classe
+from .models import Classe, Ecole
 from .serializers import ClasseSerializer, EcoleSerializer
 from .mixins import SchoolScopeMixin
 from .permissions import IsInSameSchool
@@ -34,9 +34,3 @@ class ClasseViewSet(SchoolScopeMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         # select_related évite les requêtes N+1 sur la FK ecole
         return Classe.objects.filter(is_active=True).select_related("ecole")
-
-class ClasseViewSet(SchoolScopeMixin, viewsets.ModelViewSet):
-    """API /classes/ : filtrée automatiquement par école de l'utilisateur"""
-    serializer_class = ClasseSerializer
-    permission_classes = [permissions.IsAuthenticated, IsInSameSchool]
-    # Le mixin SchoolScopeMixin gère déjà get_queryset()

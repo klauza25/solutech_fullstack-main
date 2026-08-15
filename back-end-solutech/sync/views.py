@@ -3,7 +3,7 @@ import json
 import logging
 # === IMPORTS DJANGO ===
 from django.apps import apps
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 # === IMPORTS DRF ===
 from rest_framework.views import APIView
@@ -19,6 +19,14 @@ logger = logging.getLogger("apps.sync")
 
 # Whitelist stricte des modèles synchronisables (CDC §3.1)
 ALLOWED_SYNC_MODELS = {"ecoles.Ecole", "ecoles.Classe"}  # Étendre progressivement
+
+
+class SyncModelNotAllowed(Exception):
+    """Opération portant sur un modèle hors whitelist : erreur client (400)"""
+
+    def __init__(self, model_name: str):
+        self.model_name = model_name
+        super().__init__(f"Modèle non autorisé : {model_name}")
 
 
 class SyncPushView(APIView):
@@ -37,56 +45,26 @@ class SyncPushView(APIView):
                 status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
             )
 
+        device_id = input_data.validated_data["device_id"]
         report = {"processed": 0, "conflicts": 0, "errors": 0, "details": []}
 
         try:
             with transaction.atomic():  # 🔒 Atomicité totale du batch
                 for op_data in operations:
-                    client_id = op_data["client_operation_id"]
-                    model_name = op_data["model_name"]
-                    op_type = op_data["operation_type"]
-                    payload = op_data["payload"]
+                    self._process_operation(op_data, device_id, request.user, report)
 
-                    # ✅ Idempotence : ignorer si déjà traité
-                    if SyncQueue.objects.filter(
-                        client_operation_id=client_id, 
-                        status=SyncStatus.PROCESSED
-                    ).exists():
-                        report["details"].append({
-                            "client_operation_id": str(client_id), 
-                            "status": "ALREADY_PROCESSED"
-                        })
-                        continue
-
-                    # ✅ Validation du modèle cible
-                    if model_name not in ALLOWED_SYNC_MODELS:
-                        raise ValueError(f"Modèle non autorisé : {model_name}")
-
-                    # ✅ Création de l'entrée en file d'attente
-                    queue_entry = SyncQueue.objects.create(
-                        device_id=input_data.validated_data["device_id"],
-                        client_operation_id=client_id,
-                        user=request.user,
-                        operation_type=op_type,
-                        model_name=model_name,
-                        payload=payload,
-                        status=SyncStatus.PENDING
-                    )
-
-                    # 🔧 Traitement simulé (logique métier réelle à implémenter par modèle en Phase 4)
-                    queue_entry.status = SyncStatus.PROCESSED
-                    queue_entry.processed_at = timezone.now()
-                    queue_entry.save(update_fields=["status", "processed_at"])
-
-                    report["processed"] += 1
-                    report["details"].append({
-                        "client_operation_id": str(client_id), 
-                        "status": "PROCESSED"
-                    })
+        except SyncModelNotAllowed as e:
+            # Erreur imputable au client : la distinguer d'une panne serveur
+            log_sync_failure(device_id, request.user.id, "MODEL_NOT_ALLOWED", e.model_name)
+            return Response(
+                {"detail": str(e), "allowed_models": sorted(ALLOWED_SYNC_MODELS)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         except Exception as e:
             # ⚠️ Ne jamais logger le payload complet (données sensibles)
-            logger.error(f"Sync batch failed for user {request.user.id}: {type(e).__name__}")
+            log_sync_failure(device_id, request.user.id, type(e).__name__)
+            logger.exception("Sync batch failed for user %s", request.user.id)
             # transaction.atomic() assure le rollback automatique
             return Response(
                 {"detail": "Échec de synchronisation. Données non altérées."}, 
@@ -99,6 +77,64 @@ class SyncPushView(APIView):
             SyncBatchResponseSerializer(report).data, 
             status=status.HTTP_200_OK
         )
+
+    def _process_operation(self, op_data, device_id, user, report):
+        """Traite une opération du batch et enrichit le rapport.
+
+        Lève SyncModelNotAllowed (400) ou toute autre exception (500) : dans les
+        deux cas la transaction du batch est annulée par l'appelant.
+        """
+        client_id = op_data["client_operation_id"]
+        model_name = op_data["model_name"]
+
+        # ✅ Idempotence : ignorer si déjà traité
+        if SyncQueue.objects.filter(
+            client_operation_id=client_id, 
+            status=SyncStatus.PROCESSED
+        ).exists():
+            report["details"].append({
+                "client_operation_id": str(client_id), 
+                "status": "ALREADY_PROCESSED"
+            })
+            return
+
+        # ✅ Validation du modèle cible
+        if model_name not in ALLOWED_SYNC_MODELS:
+            raise SyncModelNotAllowed(model_name)
+
+        # ✅ Création de l'entrée en file d'attente
+        try:
+            # Savepoint : une collision d'unicité ne doit pas invalider le batch
+            with transaction.atomic():
+                queue_entry = SyncQueue.objects.create(
+                    device_id=device_id,
+                    client_operation_id=client_id,
+                    user=user,
+                    operation_type=op_data["operation_type"],
+                    model_name=model_name,
+                    payload=op_data["payload"],
+                    status=SyncStatus.PENDING
+                )
+        except IntegrityError:
+            # client_operation_id est unique : un retry concurrent a déjà inséré la ligne
+            log_sync_failure(device_id, user.id, "DUPLICATE_OPERATION", str(client_id))
+            report["details"].append({
+                "client_operation_id": str(client_id),
+                "status": "ALREADY_PROCESSED",
+                "message": "Opération déjà enregistrée (retry concurrent)"
+            })
+            return
+
+        # 🔧 Traitement simulé (logique métier réelle à implémenter par modèle en Phase 4)
+        queue_entry.status = SyncStatus.PROCESSED
+        queue_entry.processed_at = timezone.now()
+        queue_entry.save(update_fields=["status", "processed_at"])
+
+        report["processed"] += 1
+        report["details"].append({
+            "client_operation_id": str(client_id), 
+            "status": "PROCESSED"
+        })
 
 
 class SyncStatusView(APIView):
