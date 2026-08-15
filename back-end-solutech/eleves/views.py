@@ -1,38 +1,30 @@
 import logging
 import openpyxl
-from datetime import datetime
 from django.db import transaction
-from django.utils import timezone
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
-from .models import Eleve, LienFamille
+from common.scoping import RoleScopedQuerysetMixin
+from .models import Eleve
 from .serializers import EleveListSerializer, EleveDetailSerializer
 from .permissions import EleveScopePermission
-from ecoles.models import Classe
 
 logger = logging.getLogger("apps.eleves")
 
-class EleveViewSet(viewsets.ModelViewSet):
+class EleveViewSet(RoleScopedQuerysetMixin, viewsets.ModelViewSet):
     """CRUD Élèves avec scope par école/parent & import Excel (CDC §2.1, §4.5, §7.2)"""
     permission_classes = [permissions.IsAuthenticated, EleveScopePermission]
-    
+    base_queryset = (
+        Eleve.objects.filter(is_active=True)
+        .select_related("ecole", "classe_actuelle")
+        .prefetch_related("parents")
+    )
+    scope_ecole_path = "ecole"
+    scope_parent_path = "parents"
+
     def get_serializer_class(self):
         return EleveDetailSerializer if self.action == "retrieve" else EleveListSerializer
-
-    def get_queryset(self):
-        user = self.request.user
-        qs = Eleve.objects.filter(is_active=True).select_related("ecole", "classe_actuelle").prefetch_related("parents")
-        
-        if user.is_superuser: return qs
-        if user.role in ["ADMIN", "DIRECTEUR", "INSPECTEUR"]:
-            return qs.filter(ecole=user.ecole)
-        if user.role == "PROFESSEUR":
-            return qs.filter(ecole=user.ecole) if user.ecole else qs.none()
-        if user.role == "PARENT":
-            return qs.filter(parents=user)
-        return qs.none()
 
     @action(detail=False, methods=["post"], parser_classes=[MultiPartParser])
     def import_excel(self, request):

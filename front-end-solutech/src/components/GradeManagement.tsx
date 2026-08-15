@@ -10,6 +10,9 @@ import { useState, useMemo } from 'react';
 import { Search, Plus, Save, X, BookOpen, TrendingDown, TrendingUp, Minus } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { getEleveById, getMatiereById, getClasseById } from '@/data/mockData';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { SyncBadge } from '@/components/ui/SyncBadge';
+import { noteSur20, SEUIL_BON, SEUIL_ECHEC } from '@/utils/stats';
 import type { Note } from '@/types';
 
 export function GradeManagement() {
@@ -66,16 +69,16 @@ export function GradeManagement() {
   };
 
   const getNoteColor = (note: number, sur: number) => {
-    const sur20 = (note / sur) * 20;
-    if (sur20 >= 14) return 'text-success';
-    if (sur20 >= 10) return 'text-warning';
+    const sur20 = noteSur20(note, sur);
+    if (sur20 >= SEUIL_BON) return 'text-success';
+    if (sur20 >= SEUIL_ECHEC) return 'text-warning';
     return 'text-error';
   };
 
   const getNoteIcon = (note: number, sur: number) => {
-    const sur20 = (note / sur) * 20;
-    if (sur20 >= 14) return <TrendingUp className="w-3.5 h-3.5 text-success" />;
-    if (sur20 >= 10) return <Minus className="w-3.5 h-3.5 text-warning" />;
+    const sur20 = noteSur20(note, sur);
+    if (sur20 >= SEUIL_BON) return <TrendingUp className="w-3.5 h-3.5 text-success" />;
+    if (sur20 >= SEUIL_ECHEC) return <Minus className="w-3.5 h-3.5 text-warning" />;
     return <TrendingDown className="w-3.5 h-3.5 text-error" />;
   };
 
@@ -251,7 +254,7 @@ export function GradeManagement() {
         {filteredNotes.map((n) => {
           const eleve = getEleveById(n.eleveId);
           const matiere = getMatiereById(n.matiereId);
-          const sur20 = (n.note / n.noteSur) * 20;
+          const sur20 = noteSur20(n.note, n.noteSur);
           return (
             <div key={n.id} className="card bg-base-100 shadow-sm">
               <div className="card-body p-4">
@@ -278,16 +281,14 @@ export function GradeManagement() {
                 <div className="flex items-center gap-1 mt-2">
                   {getNoteIcon(n.note, n.noteSur)}
                   <span className={`text-xs ${getNoteColor(n.note, n.noteSur)}`}>
-                    {sur20 >= 14 ? 'Bonne performance' : sur20 >= 10 ? 'Passable' : 'Insuffisant'}
+                    {sur20 >= SEUIL_BON ? 'Bonne performance' : sur20 >= SEUIL_ECHEC ? 'Passable' : 'Insuffisant'}
                   </span>
                 </div>
               </div>
             </div>
           );
         })}
-        {filteredNotes.length === 0 && (
-          <div className="text-center py-8 text-base-content/50 text-sm">Aucune note trouvée</div>
-        )}
+        {filteredNotes.length === 0 && <EmptyState message="Aucune note trouvée" />}
       </div>
 
       {/* Tableau desktop */}
@@ -309,7 +310,7 @@ export function GradeManagement() {
             {filteredNotes.map((n) => {
               const eleve = getEleveById(n.eleveId);
               const matiere = getMatiereById(n.matiereId);
-              const sur20 = (n.note / n.noteSur) * 20;
+              const sur20 = noteSur20(n.note, n.noteSur);
               return (
                 <tr key={n.id} className="hover:bg-base-200/50">
                   <td className="font-medium">{eleve?.prenom} {eleve?.nom}</td>
@@ -324,20 +325,14 @@ export function GradeManagement() {
                   <td>{n.trimestre}</td>
                   <td className="max-w-[200px] truncate text-xs">{n.appreciation ?? '-'}</td>
                   <td>
-                    {n.syncStatus === 'PENDING' ? (
-                      <span className="badge badge-warning badge-xs">En attente</span>
-                    ) : (
-                      <span className="badge badge-success badge-xs">Sync</span>
-                    )}
+                    <SyncBadge status={n.syncStatus} />
                   </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
-        {filteredNotes.length === 0 && (
-          <div className="text-center py-8 text-base-content/50 text-sm">Aucune note trouvée</div>
-        )}
+        {filteredNotes.length === 0 && <EmptyState message="Aucune note trouvée" />}
       </div>
     </div>
   );

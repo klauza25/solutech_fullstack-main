@@ -6,11 +6,10 @@ from django.apps import apps
 from django.db import transaction
 from django.utils import timezone
 # === IMPORTS DRF ===
-from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, permissions
-from rest_framework.throttling import UserRateThrottle
-from .utils import validate_delta_window, log_sync_failure
+from rest_framework import status
+from common.views import ThrottledAPIView
+from .utils import validate_delta_window
 # === IMPORTS LOCAUX ===
 from .models import SyncQueue, OperationType, SyncStatus, SyncConflictLog
 from .serializers import SyncBatchInputSerializer, SyncBatchResponseSerializer
@@ -21,10 +20,8 @@ logger = logging.getLogger("apps.sync")
 ALLOWED_SYNC_MODELS = {"ecoles.Ecole", "ecoles.Classe"}  # Étendre progressivement
 
 
-class SyncPushView(APIView):
+class SyncPushView(ThrottledAPIView):
     """Endpoint POST /api/sync/push/ — Traitement batch idempotent"""
-    permission_classes = [permissions.IsAuthenticated]
-    throttle_classes = [UserRateThrottle]
 
     def post(self, request):
         input_data = SyncBatchInputSerializer(data=request.data)
@@ -101,14 +98,12 @@ class SyncPushView(APIView):
         )
 
 
-class SyncStatusView(APIView):
+class SyncStatusView(ThrottledAPIView):
     """
     GET /api/sync/status/
     Retourne l'état de synchronisation des opérations du client connecté.
     Réponse optimisée : uniquement les IDs + statuts (pas de payloads).
     """
-    permission_classes = [permissions.IsAuthenticated]
-    throttle_classes = [UserRateThrottle]
 
     def get(self, request):
         # Filtrage strict : l'utilisateur ne voit QUE ses propres opérations
@@ -156,13 +151,12 @@ class SyncStatusView(APIView):
     
     
 
-class SyncPingView(APIView):
+class SyncPingView(ThrottledAPIView):
     """
     GET /api/sync/ping/
     Mesure la latence réseau. Utilisé par la PWA pour basculer online/offline.
     """
     permission_classes = []  # Public, sans auth
-    throttle_classes = [UserRateThrottle]
 
     def get(self, request):
         return Response({
@@ -171,13 +165,11 @@ class SyncPingView(APIView):
             "timezone": timezone.get_current_timezone_name()
         }, status=status.HTTP_200_OK)
 
-class SyncDeltaView(APIView):
+class SyncDeltaView(ThrottledAPIView):
     """
     GET /api/sync/delta/?last_sync=2026-05-10T14:00:00Z
     Retourne uniquement les modifications récentes (CDC §3.2 Faible bande passante)
     """
-    permission_classes = [permissions.IsAuthenticated]
-    throttle_classes = [UserRateThrottle]
 
     def get(self, request):
         last_sync = validate_delta_window(request.query_params.get("last_sync"))

@@ -11,6 +11,8 @@ import { Search, Plus, Edit2, Save, X, Filter, User, Phone, MapPin, Calendar, Al
 import { useApp } from '@/context/AppContext';
 import { getClasseById } from '@/data/mockData';
 import { masquerTelephone, masquerNom, peutVoirDonneesSensibles } from '@/utils/crypto';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { SyncBadge } from '@/components/ui/SyncBadge';
 import type { Eleve, Sexe } from '@/types';
 
 export function StudentManagement() {
@@ -277,11 +279,7 @@ export function StudentManagement() {
         {filteredEleves.map((eleve) => (
           <EleveCard key={eleve.id} eleve={eleve} canSeeSensitive={canSeeSensitive} onEdit={startEdit} />
         ))}
-        {filteredEleves.length === 0 && (
-          <div className="text-center py-8 text-base-content/50 text-sm">
-            Aucun élève trouvé
-          </div>
-        )}
+        {filteredEleves.length === 0 && <EmptyState message="Aucun élève trouvé" />}
       </div>
 
       <div className="hidden lg:block card bg-base-100 shadow-sm overflow-x-auto">
@@ -316,12 +314,7 @@ export function StudentManagement() {
                   {canSeeSensitive ? eleve.telephoneParent : masquerTelephone(eleve.telephoneParent)}
                 </td>
                 <td>
-                  {eleve.syncStatus === 'PENDING' && (
-                    <span className="badge badge-warning badge-xs">En attente</span>
-                  )}
-                  {eleve.syncStatus === 'SYNCED' && (
-                    <span className="badge badge-success badge-xs">Sync</span>
-                  )}
+                  <SyncBadge status={eleve.syncStatus} />
                 </td>
                 <td>
                   <button
@@ -336,11 +329,7 @@ export function StudentManagement() {
             ))}
           </tbody>
         </table>
-        {filteredEleves.length === 0 && (
-          <div className="text-center py-8 text-base-content/50 text-sm">
-            Aucun élève trouvé
-          </div>
-        )}
+        {filteredEleves.length === 0 && <EmptyState message="Aucun élève trouvé" />}
       </div>
     </div>
   );
