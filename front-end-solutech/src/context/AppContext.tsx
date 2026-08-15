@@ -9,6 +9,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import type { Utilisateur, Etablissement, UserRole, Eleve, Enseignant, Note, Presence, Classe } from '@/types';
 import { mockUtilisateurs, mockEtablissements, mockEleves, mockEnseignants, mockNotes, mockPresences, mockClasses } from '@/data/mockData';
 import { useOffline } from '@/hooks/useOffline';
+import { createLocalEntity } from '@/utils/sync';
 
 interface AppContextType {
   // Auth
@@ -94,11 +95,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addEleve = useCallback((eleveData: Omit<Eleve, 'id' | 'syncStatus'>) => {
-    const newEleve: Eleve = {
-      ...eleveData,
-      id: `e-${Date.now()}`,
-      syncStatus: isOnline ? 'SYNCED' : 'PENDING',
-    };
+    const newEleve: Eleve = createLocalEntity('e', eleveData, isOnline);
     setEleves((prev) => [...prev, newEleve]);
     if (!isOnline) {
       queueForSync({ entityType: 'ELEVE', action: 'CREATE', payload: newEleve });
@@ -115,11 +112,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [isOnline, queueForSync]);
 
   const addNote = useCallback((noteData: Omit<Note, 'id' | 'syncStatus'>) => {
-    const newNote: Note = {
-      ...noteData,
-      id: `n-${Date.now()}`,
-      syncStatus: isOnline ? 'SYNCED' : 'PENDING',
-    };
+    const newNote: Note = createLocalEntity('n', noteData, isOnline);
     setNotes((prev) => [...prev, newNote]);
     if (!isOnline) {
       queueForSync({ entityType: 'NOTE', action: 'CREATE', payload: newNote });
@@ -127,11 +120,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [isOnline, queueForSync]);
 
   const addPresence = useCallback((presenceData: Omit<Presence, 'id' | 'syncStatus'>) => {
-    const newPresence: Presence = {
-      ...presenceData,
-      id: `p-${Date.now()}`,
-      syncStatus: isOnline ? 'SYNCED' : 'PENDING',
-    };
+    const newPresence: Presence = createLocalEntity('p', presenceData, isOnline);
     setPresences((prev) => [...prev, newPresence]);
     if (!isOnline) {
       queueForSync({ entityType: 'PRESENCE', action: 'CREATE', payload: newPresence });
