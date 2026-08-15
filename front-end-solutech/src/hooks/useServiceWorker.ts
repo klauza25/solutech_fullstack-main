@@ -11,10 +11,12 @@ export function useServiceWorker() {
   const [isReady, setIsReady] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) {
       console.warn('[SW] Service Worker non supporté');
+      setError('Mode hors-ligne non supporté par ce navigateur.');
       return;
     }
 
@@ -52,12 +54,13 @@ export function useServiceWorker() {
             console.log('[SW] Cache mis à jour');
           }
         });
-      } catch (error) {
-        console.error('[SW] Erreur d\'enregistrement:', error);
+      } catch (err) {
+        console.error('[SW] Erreur d\'enregistrement:', err);
+        setError('Mode hors-ligne indisponible : le service worker n\'a pas pu être installé.');
       }
     };
 
-    registerSW();
+    void registerSW();
   }, []);
 
   /** Mettre à jour vers la nouvelle version */
@@ -78,16 +81,24 @@ export function useServiceWorker() {
     registration.waiting.postMessage({ type: 'SKIP_WAITING' });
   };
 
-  /** Désinscrire le service worker */
-  const unregister = async () => {
-    if (!registration) return;
-    await registration.unregister();
-    console.log('[SW] Service Worker désinscrit');
+  /** Désinscrire le service worker. Retourne false si la désinscription a échoué. */
+  const unregister = async (): Promise<boolean> => {
+    if (!registration) return false;
+    try {
+      const done = await registration.unregister();
+      if (!done) setError('Désinscription du service worker refusée par le navigateur.');
+      return done;
+    } catch (err) {
+      console.error('[SW] Erreur de désinscription:', err);
+      setError('Désinscription du service worker impossible.');
+      return false;
+    }
   };
 
   return {
     isReady,
     updateAvailable,
+    error,
     update,
     unregister,
   };

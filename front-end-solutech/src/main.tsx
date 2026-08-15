@@ -11,7 +11,8 @@ if ('serviceWorker' in navigator) {
         console.log('[SW] Service Worker enregistré:', registration.scope);
       })
       .catch((error) => {
-        console.log('[SW] Échec enregistrement SW:', error);
+        // Échec = pas de mode hors-ligne : à signaler comme une erreur, pas un simple log
+        console.error('[SW] Échec enregistrement SW, mode hors-ligne indisponible:', error);
       });
   });
 }

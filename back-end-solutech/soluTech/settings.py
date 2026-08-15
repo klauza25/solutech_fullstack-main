@@ -121,15 +121,25 @@ AUTH_PASSWORD_VALIDATORS = [
 
 ######### klauza add
 
-#LOGGING = {
-#    "version": 1,
- #   "handlers": {
-  #      "console": {"class": "logging.StreamHandler", "formatter": "verbose"}
-   # },
-    #"loggers": {
-     #   "apps.sync": {"handlers": ["console"], "level": "WARNING"}
-    #}
-#}
+# Les vues métier journalisent sous "apps.*" : sans handler, les erreurs
+# attrapées (sync, imports) seraient invisibles en production.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {name} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "verbose"},
+    },
+    "loggers": {
+        "django": {"handlers": ["console"], "level": "INFO"},
+        "apps": {"handlers": ["console"], "level": "INFO", "propagate": False},
+    },
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/

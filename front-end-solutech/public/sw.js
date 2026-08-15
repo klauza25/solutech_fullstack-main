@@ -19,6 +19,10 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[SW] Cache ouvert :', CACHE_NAME);
       return cache.addAll(STATIC_ASSETS);
+    }).catch((err) => {
+      // L'installation doit échouer bruyamment : sans assets, pas de mode hors-ligne
+      console.error('[SW] Préchargement des assets échoué :', err);
+      throw err;
     })
   );
   // Activer immédiatement
@@ -58,7 +62,7 @@ self.addEventListener('fetch', (event) => {
       event.respondWith(networkFirstStrategy(request));
     } else {
       // Assets statiques : cache-first
-      event.respondWith(cacheFirstStrategy(request));
+      event.respondWith(cacheFirstStrategy(request, event));
     }
   }
   // Autres requêtes : laisser passer
@@ -67,7 +71,7 @@ self.addEventListener('fetch', (event) => {
 /**
  * Stratégie Cache-First pour les assets statiques
  */
-async function cacheFirstStrategy(request) {
+async function cacheFirstStrategy(request, event) {
   const cachedResponse = await caches.match(request);
   if (cachedResponse) {
     // Mettre à jour le cache en arrière-plan
@@ -133,14 +137,20 @@ async function updateCache(request) {
       const cache = await caches.open(CACHE_NAME);
       await cache.put(request, response);
     }
-  } catch {
-    // Ignorer les erreurs de mise à jour
+  } catch (err) {
+    // Échec non bloquant (la réponse en cache a déjà été servie) mais traçable
+    console.warn('[SW] Mise à jour du cache échouée :', request.url, err);
   }
 }
 
 // Gestion des notifications push (futur)
 self.addEventListener('push', (event) => {
-  const data = event.data?.json() ?? {};
+  let data = {};
+  try {
+    data = event.data?.json() ?? {};
+  } catch (err) {
+    console.error('[SW] Charge utile push illisible :', err);
+  }
   const title = data.title ?? 'SOLUTECH';
   const options = {
     body: data.body ?? 'Nouvelle notification',

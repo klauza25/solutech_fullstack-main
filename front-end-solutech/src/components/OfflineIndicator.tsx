@@ -9,7 +9,23 @@ import { Wifi, WifiOff, RefreshCw, AlertCircle } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 
 export function OfflineIndicator() {
-  const { isOnline, isSyncing, pendingCount, lastSync, forceSync } = useApp();
+  const { isOnline, isSyncing, pendingCount, failedCount, syncError, lastSync, forceSync } = useApp();
+
+  // Un échec de synchronisation ou d'écriture locale doit être visible, pas seulement en console
+  if (syncError || failedCount > 0) {
+    return (
+      <button
+        onClick={forceSync}
+        disabled={isSyncing}
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-error/10 text-error text-xs rounded-full"
+        title={syncError ?? undefined}
+        aria-label={syncError ?? `${failedCount} élément(s) en échec de synchronisation`}
+      >
+        <AlertCircle className="w-3.5 h-3.5" />
+        <span>{failedCount > 0 ? `${failedCount} en échec` : 'Erreur de sync'}</span>
+      </button>
+    );
+  }
 
   if (isOnline && pendingCount === 0) {
     return (
